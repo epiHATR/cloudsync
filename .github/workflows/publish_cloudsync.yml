@@ -14,15 +14,20 @@ on:
 jobs:
   Build:
     name: Release Cloudsync CLI
-    runs-on: 'ubuntu-latest' 
+    runs-on: 'ubuntu-latest'
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Fetch all tags
         run: |
           git fetch --tags
           git fetch --prune --unshallow
 
+      - name: Install zip
+        run: sudo apt-get install zip
+  
       - name: Install Go
         run: |
           sudo apt-get update
@@ -66,69 +71,41 @@ jobs:
           echo $releaseText >> body.txt
           echo "SHA: $commitSHA" >> body.txt
 
-          GOOS=linux GOARCH=amd64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'" \
-                                                      -o "release/linux-amd64-$version/cloudsync" cloudsync
+          echo "Start release binary"
+          GOOS=linux GOARCH=amd64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'" -o "release/linux-amd64-$version/cloudsync" cloudsync
           cd release/linux-amd64-$version
           ./cloudsync version
           tar -czvf linux-amd64-$version.tar.gz cloudsync
           cd ..
           cd ..
 
-          GOOS=darwin GOARCH=arm64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'" \
-                                                      -o "release/darwin-arm64-$version/cloudsync" cloudsync
+          GOOS=darwin GOARCH=arm64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'" -o "release/darwin-arm64-$version/cloudsync" cloudsync
           cd release/darwin-arm64-$version
           tar -czvf darwin-arm64-$version.tar.gz cloudsync
           cd ..
           cd ..
 
-          GOOS=windows GOARCH=amd64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'" \
-                                                      -o "release/windows-amd64-$version/cloudsync" cloudsync
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'" -o "release/windows-amd64-$version/cloudsync" cloudsync.exe
           cd release/windows-amd64-$version
-          tar -czvf windows-amd64-$version.zip cloudsync
+          zip -r windows-amd64-$version.zip cloudsync.exe
           cd ..
           cd ..
 
-          echo "tag=$currentTag" >> "$GITHUB_OUTPUT"
-          echo "releaseText=$releaseText" >> "$GITHUB_OUTPUT"
+          echo "exporting output for step"
+          echo "tag=$currentTag" >> $GITHUB_OUTPUT
 
-      - name: Create Release
-        uses: actions/create-release@v1
+      - name: Release
+        uses: softprops/action-gh-release@v1
         id: create_release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          release_name: cloudsync CLI ${{ steps.version.outputs.tag }}
+          name: cloudsync CLI ${{ steps.version.outputs.tag }}
           body_path: body.txt
           draft: false
           prerelease: ${{ github.event.inputs.PreReleased == 'yes' }}
-      
-      - name: Upload Linux Assets
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/linux-amd64-${{ steps.version.outputs.tag }}/linux-amd64-${{ steps.version.outputs.tag }}.tar.gz
-          asset_name: linux-amd64-${{ steps.version.outputs.tag }}.tar.gz
-          asset_content_type: application/zip
-      
-      - name: Upload Darwin Assets
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/darwin-arm64-${{ steps.version.outputs.tag }}/darwin-arm64-${{ steps.version.outputs.tag }}.tar.gz
-          asset_name: darwin-arm64-${{ steps.version.outputs.tag }}.tar.gz
-          asset_content_type: application/zip
-
-      - name: Upload Windows Assets
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/windows-amd64-${{ steps.version.outputs.tag }}/windows-amd64-${{ steps.version.outputs.tag }}.zip
-          asset_name: windows-amd64-${{ steps.version.outputs.tag }}.zip
-          asset_content_type: application/zip          
+          files: |
+            ./release/linux-amd64-${{ steps.version.outputs.tag }}/linux-amd64-${{ steps.version.outputs.tag }}.tar.gz
+            ./release/darwin-arm64-${{ steps.version.outputs.tag }}/darwin-arm64-${{ steps.version.outputs.tag }}.tar.gz
+            ./release/windows-amd64-${{ steps.version.outputs.tag }}/windows-amd64-${{ steps.version.outputs.tag }}.zip
