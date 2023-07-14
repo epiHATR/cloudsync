@@ -4,14 +4,14 @@ Copyright © 2023 Hai Tran <hidetran@gmail.com>
 package cmd
 
 import (
-	"cloudcync/src/helpers/input"
-	"cloudcync/src/helpers/output"
-	"cloudcync/src/helpers/provider/azure"
+	"cloudsync/src/helpers/input"
+	"cloudsync/src/helpers/output"
+	"cloudsync/src/helpers/provider/azure"
 
 	"github.com/spf13/cobra"
 )
 
-var savePath string = "/tmp/"
+var saveTo string = "/tmp"
 var accountName string = ""
 var containerName string = ""
 var sasKey string = ""
@@ -38,10 +38,7 @@ var downloadCmd = &cobra.Command{
 		}
 
 		if len(accountName) > 0 && len(sasKey) > 0 && len(containerName) > 0 {
-			err := azure.DownloadContainerToLocal(accountName, containerName, sasKey, savePath)
-			if err != nil {
-				output.PrintError(err.Error())
-			}
+			azure.DownloadContainerToLocal(accountName, containerName, sasKey, saveTo)
 		}
 	},
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
@@ -55,5 +52,5 @@ func init() {
 	downloadCmd.Flags().StringVarP(&accountName, "account-name", "a", "", "Name of storage account where you want to get its container downloaded.")
 	downloadCmd.Flags().StringVarP(&containerName, "container", "c", "", "Name of container you want to download.")
 	downloadCmd.Flags().StringVarP(&sasKey, "saskey", "", "", "SAS key to access Azure storage account")
-	downloadCmd.Flags().StringVarP(&savePath, "path-to-save", "p", "/temp/", "Location where contains and its blobs will be saved.")
+	downloadCmd.Flags().StringVarP(&saveTo, "save-to", "", "/tmp", "Location where contains and its blobs will be saved.")
 }

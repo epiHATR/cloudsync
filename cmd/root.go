@@ -4,7 +4,7 @@ Copyright © 2022 Hai.Tran (github.com/epiHATR)
 package cmd
 
 import (
-	"cloudcync/src/const/text"
+	"cloudsync/src/const/text"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -15,6 +15,13 @@ import (
 )
 
 var isDebug bool = false
+
+var (
+	version     string = "v0.0"
+	build       string = "#"
+	commit      string = "#"
+	releaseDate string = "#"
+)
 
 var rootCmd = &cobra.Command{
 	Use:   "cloudsync",

@@ -4,8 +4,8 @@ Copyright © 2023 Hai Tran <hidetran@gmail.com>
 package cmd
 
 import (
-	"cloudcync/src/helpers/input"
-	"cloudcync/src/helpers/output"
+	"cloudsync/src/helpers/input"
+	"cloudsync/src/helpers/output"
 	"encoding/base64"
 	"fmt"
 

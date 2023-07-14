@@ -1,0 +1,134 @@
+name: Create Release
+on:
+  workflow_dispatch:
+    inputs:
+      PreReleased:
+        required: false
+        type: choice
+        description: Pre Release ?
+        default: yes
+        options:
+          - no
+          - yes
+
+jobs:
+  Build:
+    name: Release Cloudsync CLI
+    runs-on: 'ubuntu-latest' 
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Fetch all tags
+        run: |
+          git fetch --tags
+          git fetch --prune --unshallow
+
+      - name: Install Go
+        run: |
+          sudo apt-get update
+          sudo apt-get upgrade
+          wget https://dl.google.com/go/go1.18.5.linux-amd64.tar.gz
+          sudo rm -rf /usr/local/go
+          sudo tar -C /usr/local -xzf go1.18.5.linux-amd64.tar.gz
+
+          export GOROOT=/usr/local/go
+          export GOPATH=$HOME/go
+          export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+          source ~/.bashrc
+
+          go version
+
+      - name: Build with version
+        id: version
+        run: |
+          export GOROOT=/usr/local/go
+          export GOPATH=$HOME/go
+          export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+          source ~/.bashrc
+
+          previousTag=$(git tag --sort=committerdate | tail -1)
+          build=${{ github.run_number }}
+          releaseDate=`date -u +%Y-%m-%d`
+          releaseTime=`date -u +%H:%M:%S`
+          commitSHA=$(echo $(git log --pretty=format:"%H" HEAD^...HEAD) | awk '{print $1}')
+          
+          echo "-X 'cloudsync/cmd.commit=$commitSHA'  -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'"
+
+          version=$(go run -ldflags "-X 'cloudsync/cmd.commit=$commitSHA'  -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'" main.go version -s)
+          echo "::notice title=Version :: ${version}"
+          
+          currentTag=$version
+          git tag $currentTag
+          git push --tags
+
+          IFS='' && releaseText=$(git log --pretty=format:"%h | %s"  $currentTag ^$previousTag)
+          echo "### Features: " > body.txt
+          echo $releaseText >> body.txt
+          echo "SHA: $commitSHA" >> body.txt
+
+          GOOS=linux GOARCH=amd64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'" \
+                                                      -o "release/linux-amd64-$version/cloudsync" cloudsync
+          cd release/linux-amd64-$version
+          ./cloudsync version
+          tar -czvf linux-amd64-$version.tar.gz cloudsync
+          cd ..
+          cd ..
+
+          GOOS=darwin GOARCH=arm64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'" \
+                                                      -o "release/darwin-arm64-$version/cloudsync" cloudsync
+          cd release/darwin-arm64-$version
+          tar -czvf darwin-arm64-$version.tar.gz cloudsync
+          cd ..
+          cd ..
+
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'" \
+                                                      -o "release/windows-amd64-$version/cloudsync" cloudsync
+          cd release/windows-amd64-$version
+          tar -czvf windows-amd64-$version.zip cloudsync
+          cd ..
+          cd ..
+
+          echo "tag=$currentTag" >> "$GITHUB_OUTPUT"
+          echo "releaseText=$releaseText" >> "$GITHUB_OUTPUT"
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          release_name: cloudsync CLI ${{ steps.version.outputs.tag }}
+          body_path: body.txt
+          draft: false
+          prerelease: ${{ github.event.inputs.PreReleased == 'yes' }}
+      
+      - name: Upload Linux Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/linux-amd64-${{ steps.version.outputs.tag }}/linux-amd64-${{ steps.version.outputs.tag }}.tar.gz
+          asset_name: linux-amd64-${{ steps.version.outputs.tag }}.tar.gz
+          asset_content_type: application/zip
+      
+      - name: Upload Darwin Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/darwin-arm64-${{ steps.version.outputs.tag }}/darwin-arm64-${{ steps.version.outputs.tag }}.tar.gz
+          asset_name: darwin-arm64-${{ steps.version.outputs.tag }}.tar.gz
+          asset_content_type: application/zip
+
+      - name: Upload Windows Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release/windows-amd64-${{ steps.version.outputs.tag }}/windows-amd64-${{ steps.version.outputs.tag }}.zip
+          asset_name: windows-amd64-${{ steps.version.outputs.tag }}.zip
+          asset_content_type: application/zip          
