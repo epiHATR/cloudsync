@@ -13,11 +13,28 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 )
 
-func DownloadContainerToLocal(accountName, containerName, key, path string) {
+func DownloadContainerWithConnectionString(connectionString, containerName, path string) {
+	output.PrintLog(fmt.Sprintf("Start downloading blobs in container %s to %s", containerName, path))
+	client, err := azurelib.VerifySourceAccountWithConnectionString(connectionString)
+	helpers.HandleError(err)
+
+	downloadBlobs(client, containerName, path)
+
+	output.PrintLog(fmt.Sprintf("All blobs in %s has been transferred to %s", containerName, path))
+}
+
+func DownloadContainerWithKey(accountName, containerName, key, path string) {
 	output.PrintLog(fmt.Sprintf("Start downloading blobs in %s/%s to %s", containerName, accountName, path))
-	ctx := context.Background()
 	client, err := azurelib.VerifySourceAccountWithKey(accountName, key)
 	helpers.HandleError(err)
+
+	downloadBlobs(client, containerName, path)
+
+	output.PrintLog(fmt.Sprintf("All blobs in %s has been transferred to %s", containerName, path))
+}
+
+func downloadBlobs(client *azblob.Client, containerName, path string) {
+	ctx := context.Background()
 
 	blobs, err := azurelib.GetBlobsInContainer(*client, containerName)
 	helpers.HandleError(err)
@@ -28,7 +45,7 @@ func DownloadContainerToLocal(accountName, containerName, key, path string) {
 		go func(blobName string) {
 			defer wg.Done()
 			fileName, _ := file.GetFileNameFromPath(blobName)
-			output.PrintLog(fmt.Sprintf("transfering blob %s", fileName))
+			output.PrintLog(fmt.Sprintf("transferring blob %s", fileName))
 
 			get, err := client.DownloadStream(ctx, containerName, blobName, nil)
 			helpers.HandleError(err)
@@ -47,5 +64,4 @@ func DownloadContainerToLocal(accountName, containerName, key, path string) {
 	}
 
 	wg.Wait()
-	output.PrintLog(fmt.Sprintf("All blobs in %s has been transfered to %s", containerName, path))
 }

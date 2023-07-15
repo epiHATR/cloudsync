@@ -16,6 +16,12 @@ func VerifySourceAccountWithKey(accountName, key string) (*azblob.Client, error)
 	return client, nil
 }
 
+func VerifySourceAccountWithConnectionString(connectionString string) (*azblob.Client, error) {
+	client, err := azblob.NewClientFromConnectionString(connectionString, nil)
+	helpers.HandleError(err)
+	return client, nil
+}
+
 func GetBlobsInContainer(client azblob.Client, containerName string) ([]string, error) {
 	blobs := []string{}
 	pager := client.NewListBlobsFlatPager(containerName, &azblob.ListBlobsFlatOptions{

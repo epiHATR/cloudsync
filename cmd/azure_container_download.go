@@ -21,10 +21,10 @@ var saveTo string = ""
 var accountName string = ""
 var containerName string = ""
 var key string = ""
-var sasUrl string = ""
+var connectionString string = ""
 
 var baseFlagSet []string = []string{"account-name", "container", "key"}
-var advanceFlagSet []string = []string{"container", "sas-url"}
+var advanceFlagSet []string = []string{"container", "connection-string"}
 
 // downloadCmd represents the download command
 var downloadCmd = &cobra.Command{
@@ -34,21 +34,29 @@ var downloadCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println(fmt.Sprintf("working on flagset %s", strings.Join(activeFlagSet, ", ")))
 
-		// download container with account-name, container, key
+		saveTo, err := input.GetInputValue("save-to", saveTo)
+		if err != nil {
+			homeDir, err := file.GetCurrentUserHomePath()
+			helpers.HandleError(err)
+			saveTo = homeDir + "/Downloads/" + containerName
+		}
+
 		if input.AreFlagSetsEqual(baseFlagSet, activeFlagSet) {
+			// download container with account-name, container, key
 			accountName, err := input.GetInputValue("account-name", accountName)
 			containerName, err := input.GetInputValue("container", containerName)
 			key, err := input.GetInputValue("key", key)
 			helpers.HandleError(err)
-
-			saveTo, err := input.GetInputValue("save-to", saveTo)
-			if err != nil {
-				homeDir, err := file.GetCurrentUserHomePath()
-				helpers.HandleError(err)
-				saveTo = homeDir + "/Downloads/" + accountName + "/" + containerName
-			}
 			if len(accountName) > 0 && len(containerName) > 0 && len(key) > 0 {
-				azure.DownloadContainerToLocal(accountName, containerName, key, saveTo)
+				azure.DownloadContainerWithKey(accountName, containerName, key, saveTo)
+			}
+		} else if input.AreFlagSetsEqual(advanceFlagSet, activeFlagSet) {
+			//download container with connection-string, container
+			containerName, err := input.GetInputValue("container", containerName)
+			connectionString, err := input.GetInputValue("connection-string", connectionString)
+			helpers.HandleError(err)
+			if len(containerName) > 0 && len(connectionString) > 0 {
+				azure.DownloadContainerWithConnectionString(connectionString, containerName, saveTo)
 			}
 		} else {
 			// we will define another download method here
@@ -67,7 +75,7 @@ func init() {
 	containerCmd.AddCommand(downloadCmd)
 	downloadCmd.Flags().StringVarP(&accountName, "account-name", "a", "", "Name of storage account where you want to get its container downloaded.")
 	downloadCmd.Flags().StringVarP(&key, "key", "", "", "Storage Account key to access Azure storage account")
-	downloadCmd.Flags().StringVarP(&sasUrl, "sas-url", "", "", "SAS URL to access Azure storage account")
+	downloadCmd.Flags().StringVarP(&connectionString, "connection-string", "", "", "Storage account connection string")
 	downloadCmd.Flags().StringVarP(&containerName, "container", "c", "", "Name of container you want to download.")
 	downloadCmd.Flags().StringVarP(&saveTo, "save-to", "", "", "Location where contains and its blobs will be saved.")
 
