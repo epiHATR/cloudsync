@@ -1,6 +1,6 @@
 metadata:
-  generatedName: cloudsync-run-
-  name: cloudsync-run
+  generatedName: cloudsync-example-
+  name: cloudsync-example
   namespace: default
   labels:
     example: "true"
@@ -8,35 +8,12 @@ spec:
   workflowMetadata:
     labels:
       example: "true"
-  entrypoint: base64-with-env
-  arguments:
-    parameters:
-      - name: input
-        value: hello argo
+  entrypoint: cloudsync-version
   templates:
-    - name: base64-with-env
+    - name: cloudsync-version
       container:
-        name: cloudsync-base64
-        env:
-          - name: CLOUDSYNC_ENV_INPUT
-            value: 'this text will be encoded to base54'
+        name: cloudsync-latest
         image: hidetran/cloudsync:latest
-        command: [ "cloudsync", "base64" ]
-      
-    - name: base64-with-input
-      inputs:
-        parameters:
-          - name: input
-            value: "{{workflow.parameters.input}}"
-      container:
-        name: cloudsync-base64
-        image: hidetran/cloudsync:latest
-        command: [ "cloudsync", "base64" ]
-        args:
-          - '--input'
-          - "{{inputs.parameters.input}}"
-    
+        command: [ "cloudsync", "version" ]
   ttlStrategy:
-    secondsAfterCompletion: 300
-  podGC:
-    strategy: OnPodCompletion
+    secondsAfterCompletion: 2592000

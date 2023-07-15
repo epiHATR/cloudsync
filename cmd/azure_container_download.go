@@ -28,17 +28,22 @@ var downloadCmd = &cobra.Command{
 		accountName, err := input.GetInputValue("account-name", accountName)
 		helpers.HandleError(err)
 
+		containerName, err := input.GetInputValue("container", containerName)
+		helpers.HandleError(err)
+
 		sasKey, err := input.GetInputValue("saskey", sasKey)
 		helpers.HandleError(err)
 
-		containerName, err := input.GetInputValue("container", containerName)
-		helpers.HandleError(err)
+		saveTo, err = input.GetInputValue("save-to", saveTo)
+		if err != nil {
+			saveTo = ""
+		}
 
 		if len(accountName) > 0 && len(sasKey) > 0 && len(containerName) > 0 {
 			if len(saveTo) <= 0 {
 				homeDir, err := file.GetCurrentUserHomePath()
 				helpers.HandleError(err)
-				saveTo = homeDir + "/downloads/" + accountName + "/" + containerName
+				saveTo = homeDir + "/Downloads/" + accountName + "/" + containerName
 			}
 			azure.DownloadContainerToLocal(accountName, containerName, sasKey, saveTo)
 		}

@@ -14,7 +14,7 @@ import (
 )
 
 func DownloadContainerToLocal(accountName, containerName, sasKey, path string) {
-	output.PrintLog(fmt.Sprintf("Start downloading blobs in %s(account: %s) to %s", containerName, accountName, path))
+	output.PrintLog(fmt.Sprintf("Start downloading blobs in %s/%s to %s", containerName, accountName, path))
 	ctx := context.Background()
 	client, err := azurelib.VerifySourceAccount(accountName, sasKey)
 	helpers.HandleError(err)
@@ -27,7 +27,8 @@ func DownloadContainerToLocal(accountName, containerName, sasKey, path string) {
 		wg.Add(1)
 		go func(blobName string) {
 			defer wg.Done()
-			output.PrintLog(fmt.Sprintf("transfering blob %s", blobName))
+			fileName, _ := file.GetFileNameFromPath(blobName)
+			output.PrintLog(fmt.Sprintf("transfering blob %s", fileName))
 
 			get, err := client.DownloadStream(ctx, containerName, blobName, nil)
 			helpers.HandleError(err)

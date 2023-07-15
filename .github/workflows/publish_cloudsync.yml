@@ -78,7 +78,7 @@ jobs:
           echo "SHA: $commitSHA" >> body.txt
 
           echo "Start release Linux AMD64 binary"
-          GOOS=linux GOARCH=amd64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'" -o "release/linux-amd64-$version/cloudsync" cloudsync
+          GOOS=linux GOARCH=amd64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}' -s -w" -o "release/linux-amd64-$version/cloudsync" cloudsync
           cd release/linux-amd64-$version
           ./cloudsync version
           tar -czvf linux-amd64-$version.tar.gz cloudsync
@@ -86,14 +86,14 @@ jobs:
           cd ..
 
           echo "Start release Darwin ARM64 binary"
-          GOOS=darwin GOARCH=arm64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'" -o "release/darwin-arm64-$version/cloudsync" cloudsync
+          GOOS=darwin GOARCH=arm64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}' -s -w" -o "release/darwin-arm64-$version/cloudsync" cloudsync
           cd release/darwin-arm64-$version
           tar -czvf darwin-arm64-$version.tar.gz cloudsync
           cd ..
           cd ..
 
           echo "Start release Windows AMD64 executable file"
-          GOOS=windows GOARCH=amd64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'" -o "release/windows-amd64-$version/cloudsync" cloudsync
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}' -s -w" -o "release/windows-amd64-$version/cloudsync" cloudsync
           cd release/windows-amd64-$version
           mv cloudsync cloudsync.exe
           zip -r windows-amd64-$version.zip cloudsync.exe

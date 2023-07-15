@@ -12,9 +12,9 @@ const Azure_Container_Download = `
 #cloudsync azure container download --account-name <myAccountName> --container <myContainer> --sasKey <mySASkey> --save-to /save/to/path
 
 >you can also specify flag input by Environment Variables starts with CLOUSCYNC_ENV_<your flag without -- and replace - by _ > like
-#export CLOUSCYNC_ENV_account_name=<myAccountName>
-#export CLOUSCYNC_ENV_container=<myContainer>
-#export CLOUSCYNC_ENV_sasKey=<mySASkey>
+#export CLOUSCYNC_ENV_ACCOUNT_NAME=<myAccountName>
+#export CLOUSCYNC_ENV_CONTAINER=<myContainer>
+#export CLOUSCYNC_ENV_SASKEY=<mySASkey>
 
 #cloudsync azure container download --save-to /save/to/path
 

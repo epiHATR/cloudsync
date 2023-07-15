@@ -8,6 +8,11 @@ import (
 	"path/filepath"
 )
 
+func GetFileNameFromPath(path string) (string, error) {
+	_, fileName := filepath.Split(path)
+	return fileName, nil
+}
+
 func SaveStringToFile(input, filePath string) error {
 	// Check if the file already exists
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {

@@ -1,0 +1,49 @@
+# this is the simple Kubernetes pod deployment which run a pod with 2 containers
+# - cloudsync-cont: download a specific Azure storage account's container to a shared volume directory
+# - simple-express-cont: use file in shared volume directory downloaded by cloudsync-cont
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simple-express-app
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: simple-express-app
+  template:
+    metadata:
+      labels:
+        app: simple-express-app
+    spec:
+      volumes:
+        - name: shared-volume
+          emptyDir: {}
+
+      initContainers:
+          # cloudsync container: download all blobs in Azure container and save to a shared volume directory
+        - name: cloudsync-cont
+          image: hidetran/cloudsync:latest
+          imagePullPolicy: Always
+          env:
+            - name: CLOUDSYNC_ENV_ACCOUNT_NAME
+              value: "<azure storage account name>"
+            - name: CLOUDSYNC_ENV_SASKEY
+              value: "<azure storage account SAS key>"
+            - name: CLOUDSYNC_ENV_CONTAINER
+              value: "<azure storage container>"
+            - name: CLOUDSYNC_ENV_SAVE_TO
+              value: "/shared-containers"
+          command: ["cloudsync", "azure", "container", "download"]
+          volumeMounts:
+            - name: shared-volume
+              mountPath: /shared-containers
+
+      containers:
+          # simple-express container read all file in shared volume directory
+        - name: simple-express-cont
+          image: hidetran/simple-express:latest
+          volumeMounts:
+            - name: shared-volume
+              mountPath: /shared-containers

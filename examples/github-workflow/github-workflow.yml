@@ -1,0 +1,27 @@
+name: Cloudsync Example
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Custom CLI
+        run: |
+          curl -OL https://github.com/epiHATR/cloudsync/releases/download/v0.0.27/linux-amd64-v0.0.27.tar.gz
+          tar -x linux-amd64-v0.0.27.tar.gz cloudsync
+          chmod +x cloudsync
+      
+      - name: Check version
+        run: cloudsync version
+
+      - name: Run custom commands
+        env:
+          CLOUDSYNC_ENV_ACCOUNT_NAME: <azure storage account>
+          CLOUDSYNC_ENV_SASKEY: <azure storage account SAS key>
+          CLOUDSYNC_ENV_CONTAINER: <container name>
+          CLOUDSYNC_ENV_SAVE_TO: /path/to/save
+        run: cloudsync azure container download
+
+
