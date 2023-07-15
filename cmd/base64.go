@@ -6,7 +6,6 @@ package cmd
 import (
 	helpers "cloudsync/src/helpers/error"
 	"cloudsync/src/helpers/input"
-	"cloudsync/src/helpers/output"
 	"encoding/base64"
 	"fmt"
 
@@ -41,7 +40,8 @@ var base64Cmd = &cobra.Command{
 	},
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		requiredFlags := []string{"input"}
-		output.PrintRequiredFlags(requiredFlags, "", cmd)
+		err := input.ValidateRequireFlags(requiredFlags, "", cmd)
+		helpers.HandleError(err)
 	},
 }
 

@@ -1,9 +1,11 @@
 package helpers
 
-import "log"
+import (
+	"cloudsync/src/helpers/output"
+)
 
 func HandleError(err error) {
 	if err != nil {
-		log.Fatal(err.Error())
+		output.PrintError(err.Error())
 	}
 }

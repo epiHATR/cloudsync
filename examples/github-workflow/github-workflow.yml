@@ -19,7 +19,7 @@ jobs:
       - name: Run custom commands
         env:
           CLOUDSYNC_ENV_ACCOUNT_NAME: <azure storage account>
-          CLOUDSYNC_ENV_SASKEY: <azure storage account SAS key>
+          CLOUDSYNC_ENV_KEY: <azure storage account SAS key>
           CLOUDSYNC_ENV_CONTAINER: <container name>
           CLOUDSYNC_ENV_SAVE_TO: /path/to/save
         run: cloudsync azure container download

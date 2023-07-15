@@ -3,18 +3,18 @@ package text
 const CloudSync = `Welcome to CloudSync`
 const CliVersion = `CloudSync CLI version 0.0.1`
 
-const Azure_Container_Download = `
+const Azure_Container_Download_HelpText = `
 |Examples
 >download all blobs in a specific container to default location at path ~/Downloads/<myAccount>/<myContainer>
-#cloudsync azure container download --account-name <myAccountName> --container <myContainer> --sasKey <mySASkey>
+#cloudsync azure container download --account-name <myAccountName> --container <myContainer> --key <myStorageAccountKey>
 
 >download all blobs in a specific container to a specific path
-#cloudsync azure container download --account-name <myAccountName> --container <myContainer> --sasKey <mySASkey> --save-to /save/to/path
+#cloudsync azure container download --account-name <myAccountName> --container <myContainer> --key <myStorageAccountKey> --save-to /save/to/path
 
 >you can also specify flag input by Environment Variables starts with CLOUSCYNC_ENV_<your flag without -- and replace - by _ > like
 #export CLOUSCYNC_ENV_ACCOUNT_NAME=<myAccountName>
 #export CLOUSCYNC_ENV_CONTAINER=<myContainer>
-#export CLOUSCYNC_ENV_SASKEY=<mySASkey>
+#export CLOUSCYNC_ENV_KEY=<myStorageAccountKey>
 
 #cloudsync azure container download --save-to /save/to/path
 

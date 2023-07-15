@@ -13,10 +13,10 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 )
 
-func DownloadContainerToLocal(accountName, containerName, sasKey, path string) {
+func DownloadContainerToLocal(accountName, containerName, key, path string) {
 	output.PrintLog(fmt.Sprintf("Start downloading blobs in %s/%s to %s", containerName, accountName, path))
 	ctx := context.Background()
-	client, err := azurelib.VerifySourceAccount(accountName, sasKey)
+	client, err := azurelib.VerifySourceAccountWithKey(accountName, key)
 	helpers.HandleError(err)
 
 	blobs, err := azurelib.GetBlobsInContainer(*client, containerName)

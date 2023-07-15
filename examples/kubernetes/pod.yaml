@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: simple-express
+  namespace: default
+spec:
+  volumes:
+    - name: shared-volume
+      emptyDir: {}
+
+  initContainers:
+      # cloudsync container: download all blobs in Azure container and save to a shared volume directory
+    - name: cloudsync
+      image: hidetran/cloudsync:latest
+      imagePullPolicy: Always
+      env:
+        - name: CLOUDSYNC_ENV_ACCOUNT_NAME
+          value: "<azure storage account name>"
+        - name: CLOUDSYNC_ENV_KEY
+          value: "<azure storage account key>"
+        - name: CLOUDSYNC_ENV_CONTAINER
+          value: "<azure storage container>"
+        - name: CLOUDSYNC_ENV_SAVE_TO
+          value: "/shared-containers"
+      command: ["cloudsync", "azure", "container", "download"]
+      args: ["--debug"]
+      volumeMounts:
+        - name: shared-volume
+          mountPath: /shared-containers
+
+  containers:
+      # simple-express container read all file in shared volume directory
+    - name: simple-express
+      image: hidetran/simple-express:latest
+      volumeMounts:
+        - name: shared-volume
+          mountPath: /shared-containers
