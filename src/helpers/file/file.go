@@ -1,9 +1,10 @@
 package file
 
 import (
-	"fmt"
+	helpers "cloudsync/src/helpers/error"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 )
 
@@ -13,20 +14,21 @@ func SaveStringToFile(input, filePath string) error {
 		// Create the directory if it doesn't exist
 		dirPath := filepath.Dir(filePath)
 		err := os.MkdirAll(dirPath, 0755)
-		if err != nil {
-			fmt.Println(err.Error())
-			return err
-		}
+		helpers.HandleError(err)
 	}
 
 	// Write the input string to the file
 	err := ioutil.WriteFile(filePath, []byte(input), 0644)
-	if err != nil {
-		return err
-	}
+	helpers.HandleError(err)
 	return nil
 }
 
 func SaveToLocalFile(content, filePath string) error {
 	return SaveStringToFile(content, filePath)
+}
+
+func GetCurrentUserHomePath() (string, error) {
+	currentUser, err := user.Current()
+	helpers.HandleError(err)
+	return currentUser.HomeDir, nil
 }

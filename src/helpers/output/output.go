@@ -12,7 +12,7 @@ import (
 const colorError = "\033[0;31m"
 const colorNone = "\033[0m"
 
-func PrintRequiredFlags(flags []string, cmd *cobra.Command) {
+func PrintRequiredFlags(flags []string, commandHelpText string, cmd *cobra.Command) {
 	errText := []string{}
 	for _, flagName := range flags {
 		flag := cmd.Flag(flagName)
@@ -31,7 +31,11 @@ func PrintRequiredFlags(flags []string, cmd *cobra.Command) {
 	}
 	if len(errText) > 0 {
 		message := fmt.Sprintf("the following arguments are required: %s", strings.Join(errText, ", "))
-		PrintError(message)
+		if len(commandHelpText) > 0 {
+			PrintError(message + "\n\n" + commandHelpText)
+		} else {
+			PrintError(message)
+		}
 		os.Exit(1)
 	}
 }

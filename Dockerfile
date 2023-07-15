@@ -1,6 +1,4 @@
-# syntax=docker/dockerfile:1
-
-FROM golang:1.19
+FROM golang:alpine3.18
 
 # Set destination for COPY
 WORKDIR $GOPATH/cloudsync
@@ -9,12 +7,24 @@ WORKDIR $GOPATH/cloudsync
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy the source code. Note the slash at the end, as explained in
 # https://docs.docker.com/engine/reference/builder/#copy
 COPY . .
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux go build -o /usr/local/bin/cloudsync
+ARG COMMIT=1
+ARG BUILD=1
+ARG RELEASE_DATE='2023-01-01 12:00:00'
+ENV COMMIT=${COMMIT}
+ENV BUILD=${BUILD}
+ENV RELEASE_DATE=${RELEASE_DATE}
+RUN GOOS=linux GOARCH=amd64 go build -ldflags "-X 'cloudsync/cmd.commit=$COMMIT' -X 'cloudsync/cmd.build=$BUILD' -X 'cloudsync/cmd.releaseDate=$RELEASE_DATE'" -o /usr/local/bin/cloudsync
+
+# Test
+RUN /usr/local/bin/cloudsync version
+
+RUN rm -rf examples
+RUN rm -rf .github
+RUN rm -rf README.md
 
 # Optional:
 # To bind to a TCP port, runtime parameters must be supplied to the docker command.

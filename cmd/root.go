@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"cloudsync/src/const/text"
+	helpers "cloudsync/src/helpers/error"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -43,9 +44,7 @@ func Execute() {
 	})
 
 	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
-	}
+	helpers.HandleError(err)
 }
 
 func init() {

@@ -4,6 +4,7 @@ Copyright © 2023 Hai Tran <hidetran@gmail.com>
 package cmd
 
 import (
+	helpers "cloudsync/src/helpers/error"
 	"cloudsync/src/helpers/input"
 	"cloudsync/src/helpers/output"
 	"encoding/base64"
@@ -24,32 +25,23 @@ var base64Cmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if base64Decoded {
 			inputString, err := input.GetInputValue("input", cmdInputString)
-			if err != nil {
-				panic(err.Error())
-			} else {
-				rawDecodedText, err := base64.StdEncoding.DecodeString(inputString)
-				if err != nil {
-					panic(err)
-				}
-				fmt.Println(string(rawDecodedText))
-			}
+			helpers.HandleError(err)
+
+			rawDecodedText, err := base64.StdEncoding.DecodeString(inputString)
+			helpers.HandleError(err)
+			fmt.Println(string(rawDecodedText))
 
 		} else {
 			inputString, err := input.GetInputValue("input", cmdInputString)
-			if err != nil {
-				panic(err.Error())
-			} else {
-				rawEncodedText := base64.StdEncoding.EncodeToString([]byte(inputString))
-				if err != nil {
-					panic(err)
-				}
-				fmt.Println(string(rawEncodedText))
-			}
+			helpers.HandleError(err)
+			rawEncodedText := base64.StdEncoding.EncodeToString([]byte(inputString))
+			helpers.HandleError(err)
+			fmt.Println(string(rawEncodedText))
 		}
 	},
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		requiredFlags := []string{"input"}
-		output.PrintRequiredFlags(requiredFlags, cmd)
+		output.PrintRequiredFlags(requiredFlags, "", cmd)
 	},
 }
 
