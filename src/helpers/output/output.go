@@ -10,7 +10,11 @@ import (
 const colorError = "\033[0;31m"
 const colorNone = "\033[0m"
 
-func PrintError(input string) {
+func printLine(line, trimmedLine, color string) {
+	fmt.Fprintf(os.Stderr, "%s%s%s\n", color, trimmedLine, colorNone)
+}
+
+func PrintFormat(input string) {
 	const colorLink = "\033[36m"
 	const colorGray = "\033[0;90m"
 	const colorCommand = "\033[0;34m"
@@ -24,18 +28,22 @@ func PrintError(input string) {
 		} else {
 			switch {
 			case strings.HasPrefix(line, "~"):
-				fmt.Fprintf(os.Stderr, "%s%s%s\n", colorLink, trimmedLine, colorNone)
+				printLine(line, trimmedLine, colorLink)
 			case strings.HasPrefix(line, "|"):
-				fmt.Fprintf(os.Stderr, "%s%s%s\n", colorNone, trimmedLine, colorNone)
+				printLine(line, trimmedLine, colorNone)
 			case strings.HasPrefix(line, "#"):
-				fmt.Fprintf(os.Stderr, "%s%s%s\n", colorGray, trimmedLine, colorNone)
+				printLine(line, trimmedLine, colorGray)
 			case strings.HasPrefix(line, ">"):
-				fmt.Fprintf(os.Stderr, "%s%s%s\n", colorCommand, trimmedLine, colorNone)
+				printLine(line, trimmedLine, colorCommand)
 			default:
-				fmt.Fprintf(os.Stderr, "%s%s%s\n", colorError, trimmedLine, colorNone)
+				printLine(line, trimmedLine, colorError)
 			}
 		}
 	}
+}
+
+func PrintError(input string) {
+	PrintFormat(input)
 	os.Exit(1)
 }
 

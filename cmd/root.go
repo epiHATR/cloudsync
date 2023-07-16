@@ -6,7 +6,7 @@ package cmd
 import (
 	"cloudsync/src/const/text"
 	helpers "cloudsync/src/helpers/error"
-	"fmt"
+	"cloudsync/src/helpers/output"
 	"io/ioutil"
 	"log"
 	"os"
@@ -29,7 +29,7 @@ var rootCmd = &cobra.Command{
 	Short: "CloudSync CLI version",
 	Long:  "CloudSync CLI ",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(text.CloudSync)
+		output.PrintFormat(text.CloudSync)
 	},
 }
 

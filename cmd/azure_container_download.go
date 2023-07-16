@@ -16,15 +16,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var activeFlagSet []string = []string{}
+var dldActiveFS []string = []string{}
 var saveTo string = ""
 var accountName string = ""
 var containerName string = ""
 var key string = ""
 var connectionString string = ""
 
-var baseFlagSet []string = []string{"account-name", "container", "key"}
-var advanceFlagSet []string = []string{"container", "connection-string"}
+var dldBaseFS []string = []string{"account-name", "container", "key"}
+var dldConnStringFS []string = []string{"container", "connection-string"}
 
 // downloadCmd represents the download command
 var downloadCmd = &cobra.Command{
@@ -32,7 +32,7 @@ var downloadCmd = &cobra.Command{
 	Short: "Download a specific container from Azure Storage Account.",
 	Long:  "Download a specific container from Azure Storage Account.",
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println(fmt.Sprintf("working on flagset %s", strings.Join(activeFlagSet, ", ")))
+		log.Println(fmt.Sprintf("working on flagset %s", strings.Join(dldActiveFS, ", ")))
 
 		saveTo, err := input.GetInputValue("save-to", saveTo)
 		if err != nil {
@@ -41,7 +41,7 @@ var downloadCmd = &cobra.Command{
 			saveTo = homeDir + "/Downloads/" + containerName
 		}
 
-		if input.AreFlagSetsEqual(baseFlagSet, activeFlagSet) {
+		if input.AreFlagSetsEqual(dldBaseFS, dldActiveFS) {
 			// download container with account-name, container, key
 			accountName, err := input.GetInputValue("account-name", accountName)
 			containerName, err := input.GetInputValue("container", containerName)
@@ -50,7 +50,7 @@ var downloadCmd = &cobra.Command{
 			if len(accountName) > 0 && len(containerName) > 0 && len(key) > 0 {
 				azure.DownloadContainerWithKey(accountName, containerName, key, saveTo)
 			}
-		} else if input.AreFlagSetsEqual(advanceFlagSet, activeFlagSet) {
+		} else if input.AreFlagSetsEqual(dldConnStringFS, dldActiveFS) {
 			//download container with connection-string, container
 			containerName, err := input.GetInputValue("container", containerName)
 			connectionString, err := input.GetInputValue("connection-string", connectionString)
@@ -64,15 +64,15 @@ var downloadCmd = &cobra.Command{
 	},
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// we need to verify what is the current cmd flag set user want to provided to the command
-		err, flags := input.GetActiveFlagSet(cmd, text.Azure_Container_Download_HelpText, baseFlagSet, advanceFlagSet)
+		err, flags := input.GetActiveFlagSet(cmd, text.Azure_Container_Download_HelpText, dldBaseFS, dldConnStringFS)
 		//print if there's any error
 		helpers.HandleError(err)
-		activeFlagSet = flags
+		dldActiveFS = flags
 	},
 }
 
 func init() {
-	containerCmd.AddCommand(downloadCmd)
+	azureContainerCmd.AddCommand(downloadCmd)
 	downloadCmd.Flags().StringVarP(&accountName, "account-name", "a", "", "Name of storage account where you want to get its container downloaded.")
 	downloadCmd.Flags().StringVarP(&key, "key", "", "", "Storage Account key to access Azure storage account")
 	downloadCmd.Flags().StringVarP(&connectionString, "connection-string", "", "", "Storage account connection string")

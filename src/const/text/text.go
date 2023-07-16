@@ -1,7 +1,17 @@
 package text
 
-const CloudSync = `Welcome to CloudSync`
-const CliVersion = `CloudSync CLI version 0.0.1`
+const CloudSync = `|Cloudsync CLI by Hai Tran <hidetran@gmail.com>
+
+#The cloudsync CLI supports methods that help you download, copy, and synchronize resources such as blobs and bucket files between cloud providers.
+
+|Providers				Object types                Methods
+>Azure					blob                        download
+>AWS					container                   copy 
+>					bucket                      clone
+>					file-share                  upload
+
+|Documentations
+https://github.com/epiHATR/cloudsync/tree/main/docs`
 
 const Azure_Container_Download_HelpText = `
 |Examples
@@ -19,4 +29,10 @@ const Azure_Container_Download_HelpText = `
 #cloudsync azure container download --save-to /save/to/path
 
 |Documentations
-~http://github.com/epiHATR/cloudsync/examples/azure/container/download`
+https://github.com/epiHATR/cloudsync/tree/main/docs/azure/container`
+
+const Azure_Container_Copy_HelpText = `
+|Examples
+
+|Documentations
+~https://github.com/epiHATR/cloudsync/tree/main/docs/azure/container`

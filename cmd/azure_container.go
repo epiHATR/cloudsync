@@ -10,7 +10,7 @@ import (
 )
 
 // containerCmd represents the container command
-var containerCmd = &cobra.Command{
+var azureContainerCmd = &cobra.Command{
 	Use:   "container",
 	Short: "Working with Azure storage account container",
 	Long:  "Working with Azure storage account container",
@@ -21,5 +21,5 @@ var containerCmd = &cobra.Command{
 }
 
 func init() {
-	azureCmd.AddCommand(containerCmd)
+	azureCmd.AddCommand(azureContainerCmd)
 }
