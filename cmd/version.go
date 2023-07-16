@@ -17,9 +17,9 @@ var versionCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		shortTag, _ := cmd.Flags().GetBool("short")
 		if shortTag {
-			fmt.Println(version + "." + build)
+			fmt.Println(version)
 		} else {
-			fmt.Println("Cloudsync CLI version ", version+"."+build)
+			fmt.Println("Cloudsync CLI version", version)
 			fmt.Println("Build", build)
 			fmt.Println("Release Date", releaseDate)
 			fmt.Println("Commit", commit)

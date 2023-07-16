@@ -2,15 +2,18 @@ name: Create Release
 on:
   workflow_dispatch:
     inputs:
-      PreReleased:
+      ReleaseType:
         required: false
+        description: Create Github Release
         type: choice
-        description: Pre Release ?
-        default: yes
         options:
-          - no
-          - yes
-
+          - Pre-Released
+          - Released
+      PublishImage:
+        required: false
+        description: Publish Docker Images
+        default: true
+        type: boolean
 jobs:
   CreateRelease:
     name: Release Cloudsync CLI
@@ -65,48 +68,66 @@ jobs:
 
           echo "-X 'cloudsync/cmd.commit=$commitSHA'  -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'"
 
-          version=$(go run -ldflags "-X 'cloudsync/cmd.commit=$commitSHA'  -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'" main.go version -s)
+          hardCodeVersion=$(go run -ldflags "\
+                                    -X 'cloudsync/cmd.commit=$commitSHA' \
+                                    -X 'cloudsync/cmd.build=$build' \
+                                    -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}'" \
+                                    main.go version -s)
+          
+          if [[ "${{ github.event.inputs.ReleaseType }}" == "Pre-Released" ]]
+          then
+            version="$hardCodeVersion-pre-$build"
+            echo $version
+          else
+            version="$hardCodeVersion"
+            echo $version
+          fi
           echo "::notice title=Version :: ${version}"
-
           currentTag=$version
-          git tag $currentTag
-          git push --tags
 
-          IFS='' && releaseText=$(git log --pretty=format:"%h | %s"  $currentTag ^$previousTag)
-          echo "### Features: " > body.txt
-          echo $releaseText >> body.txt
-          echo "SHA: $commitSHA" >> body.txt
+          # ONLY RELEASE GITHUB PACKAGE IF RELEASE_TYPE = RELEASED
+          if [[ "${{ github.event.inputs.ReleaseType }}" == "Released" ]]
+          then
+            git tag $currentTag
+            git push --tags
 
-          echo "Start release Linux AMD64 binary"
-          GOOS=linux GOARCH=amd64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}' -s -w" -o "release/linux-amd64-$version/cloudsync" cloudsync
-          cd release/linux-amd64-$version
-          ./cloudsync version
-          tar -czvf linux-amd64-$version.tar.gz cloudsync
-          cd ..
-          cd ..
+            IFS='' && releaseText=$(git log --pretty=format:"%h | %s"  $currentTag ^$previousTag)
+            echo "### Features: " > body.txt
+            echo $releaseText >> body.txt
+            echo "SHA: $commitSHA" >> body.txt
 
-          echo "Start release Darwin ARM64 binary"
-          GOOS=darwin GOARCH=arm64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}' -s -w" -o "release/darwin-arm64-$version/cloudsync" cloudsync
-          cd release/darwin-arm64-$version
-          tar -czvf darwin-arm64-$version.tar.gz cloudsync
-          cd ..
-          cd ..
+            echo "Start release Linux AMD64 binary"
+            GOOS=linux GOARCH=amd64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}' -s -w" -o "release/linux-amd64-$version/cloudsync" cloudsync
+            cd release/linux-amd64-$version
+            ./cloudsync version
+            tar -czvf linux-amd64-$version.tar.gz cloudsync
+            cd ..
+            cd ..
 
-          echo "Start release Windows AMD64 executable file"
-          GOOS=windows GOARCH=amd64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}' -s -w" -o "release/windows-amd64-$version/cloudsync" cloudsync
-          cd release/windows-amd64-$version
-          mv cloudsync cloudsync.exe
-          zip -r windows-amd64-$version.zip cloudsync.exe
-          cd ..
-          cd ..
+            echo "Start release Darwin ARM64 binary"
+            GOOS=darwin GOARCH=arm64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}' -s -w" -o "release/darwin-arm64-$version/cloudsync" cloudsync
+            cd release/darwin-arm64-$version
+            tar -czvf darwin-arm64-$version.tar.gz cloudsync
+            cd ..
+            cd ..
 
-          echo "exporting output for step"
+            echo "Start release Windows AMD64 executable file"
+            GOOS=windows GOARCH=amd64 go build -ldflags "-X 'cloudsync/cmd.commit=$commitSHA' -X 'cloudsync/cmd.build=$build' -X 'cloudsync/cmd.releaseDate=${releaseDate} ${releaseTime}' -s -w" -o "release/windows-amd64-$version/cloudsync" cloudsync
+            cd release/windows-amd64-$version
+            mv cloudsync cloudsync.exe
+            zip -r windows-amd64-$version.zip cloudsync.exe
+            cd ..
+            cd ..
+          fi
+
+          echo "exporting output for other step"
           echo commit=$commitSHA >> $GITHUB_OUTPUT
           echo build=$build >> $GITHUB_OUTPUT
           echo releaseDate="${releaseDate} ${releaseTime}" >> $GITHUB_OUTPUT
           echo tag=$currentTag >> $GITHUB_OUTPUT
 
       - name: Release
+        if: ${{ github.event.inputs.ReleaseType == 'Released' }}
         uses: softprops/action-gh-release@v1
         id: create_release
         env:
@@ -116,13 +137,13 @@ jobs:
           name: cloudsync CLI ${{ steps.version.outputs.tag }}
           body_path: body.txt
           draft: false
-          prerelease: ${{ github.event.inputs.PreReleased == 'yes' }}
           files: |
             ./release/linux-amd64-${{ steps.version.outputs.tag }}/linux-amd64-${{ steps.version.outputs.tag }}.tar.gz
             ./release/darwin-arm64-${{ steps.version.outputs.tag }}/darwin-arm64-${{ steps.version.outputs.tag }}.tar.gz
             ./release/windows-amd64-${{ steps.version.outputs.tag }}/windows-amd64-${{ steps.version.outputs.tag }}.zip
 
   PublishDockerImage:
+    if: ${{ github.event.inputs.PublishImage == 'true' }}
     name: Publish Docker
     runs-on: "ubuntu-latest"
     needs: [CreateRelease]
@@ -142,7 +163,8 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push
+      - name: Build and push latest
+        if: ${{ github.event.inputs.ReleaseType == 'Released' }}
         uses: docker/build-push-action@v4
         with:
           push: true
@@ -154,3 +176,16 @@ jobs:
           tags: |
             cloudsync/cloudsync:${{ needs.CreateRelease.outputs.tag}}
             cloudsync/cloudsync:latest
+
+      - name: Build and push pre-released
+        if: ${{ github.event.inputs.ReleaseType == 'Pre-Released' }}
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            COMMIT=${{ needs.CreateRelease.outputs.commit}}
+            BUILD=${{ needs.CreateRelease.outputs.build}}
+            RELEASE_DATE="${{ needs.CreateRelease.outputs.releaseDate}}"
+          tags: |
+            cloudsync/cloudsync:${{ needs.CreateRelease.outputs.tag}}
