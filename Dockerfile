@@ -8,6 +8,8 @@ RUN go mod download
 
 # https://docs.docker.com/engine/reference/builder/#copy
 COPY . .
+RUN rm -rf examples
+RUN rm -rf .github
 
 # Build
 ARG COMMIT=1

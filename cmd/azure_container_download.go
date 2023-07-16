@@ -77,6 +77,5 @@ func init() {
 	downloadCmd.Flags().StringVarP(&key, "key", "", "", "Storage Account key to access Azure storage account")
 	downloadCmd.Flags().StringVarP(&connectionString, "connection-string", "", "", "Storage account connection string")
 	downloadCmd.Flags().StringVarP(&containerName, "container", "c", "", "Name of container you want to download.")
-	downloadCmd.Flags().StringVarP(&saveTo, "save-to", "", "", "Location where contains and its blobs will be saved.")
-
+	downloadCmd.Flags().StringVarP(&saveTo, "save-to", "", "", "Location where container and its blobs will be saved.")
 }
