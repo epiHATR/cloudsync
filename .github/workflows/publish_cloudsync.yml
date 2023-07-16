@@ -92,7 +92,7 @@ jobs:
             git push --tags
 
             IFS='' && releaseText=$(git log --pretty=format:"%h | %s"  $currentTag ^$previousTag)
-            echo "### Features: " > body.txt
+            echo "### Features" > body.txt
             echo $releaseText >> body.txt
             echo "SHA: $commitSHA" >> body.txt
 

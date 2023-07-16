@@ -9,8 +9,8 @@ jobs:
 
       - name: Install Custom CLI
         run: |
-          curl -OL https://github.com/epiHATR/cloudsync/releases/download/v0.0.33/linux-amd64-v0.0.23.tar.gz
-          tar -x linux-amd64-v0.0.33.tar.gz cloudsync
+          curl -OL https://github.com/epiHATR/cloudsync/releases/download/v0.0.33/linux-amd64-v0.0.2.tar.gz
+          tar -x linux-amd64-v0.0.2.tar.gz cloudsync
           chmod +x cloudsync
       
       - name: Check version

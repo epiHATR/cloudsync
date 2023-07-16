@@ -10,6 +10,7 @@ RUN go mod download
 COPY . .
 RUN rm -rf examples
 RUN rm -rf .github
+RUN rm -rf docs
 
 # Build
 ARG COMMIT=1
