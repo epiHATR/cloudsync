@@ -13,7 +13,7 @@ spec:
     - name: cloudsync-version
       container:
         name: cloudsync-latest
-        image: hidetran/cloudsync:latest
+        image: cloudsync/cloudsync:latest
         command: [ "cloudsync", "version" ]
   ttlStrategy:
     secondsAfterCompletion: 2592000

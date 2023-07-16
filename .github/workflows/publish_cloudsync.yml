@@ -152,5 +152,5 @@ jobs:
             BUILD=${{ needs.CreateRelease.outputs.build}}
             RELEASE_DATE="${{ needs.CreateRelease.outputs.releaseDate}}"
           tags: |
-            hidetran/cloudsync:${{ needs.CreateRelease.outputs.tag}}
-            hidetran/cloudsync:latest
+            cloudsync/cloudsync:${{ needs.CreateRelease.outputs.tag}}
+            cloudsync/cloudsync:latest

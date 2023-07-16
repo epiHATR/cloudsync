@@ -11,7 +11,7 @@ spec:
   initContainers:
       # cloudsync container: download all blobs in Azure container and save to a shared volume directory
     - name: cloudsync
-      image: hidetran/cloudsync:latest
+      image: cloudsync/cloudsync:latest
       imagePullPolicy: Always
       env:
         - name: CLOUDSYNC_ENV_ACCOUNT_NAME
