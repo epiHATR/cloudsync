@@ -29,10 +29,15 @@ const Azure_Container_Download_HelpText = `
 #cloudsync azure container download --save-to /save/to/path
 
 |Documentations
-https://github.com/epiHATR/cloudsync/tree/main/docs/azure/container`
+~https://github.com/epiHATR/cloudsync/tree/main/docs/azure/container`
 
 const Azure_Container_Copy_HelpText = `
 |Examples
+#copy container myContainer from Azure storage account myStorageAccount1 to storage account myStorageAccount2 with storage account key
+>cloudsync azure container copy --source-account myStorageAccount1 --source-container myContainer --source-key myAccount1Key --destination-account myStorageAccount2 --destination-key myAccount2Key
+
+#copy container myContainer from Azure storage account myStorageAccount1 to storage account myStorageAccount2 with storage account connection string
+>cloudsync azure container copy -source-container myContainer --source-connection-string myAccount1Conn --destination-account myStorageAccount2 --destination-connection-string myAccount2Conn
 
 |Documentations
 ~https://github.com/epiHATR/cloudsync/tree/main/docs/azure/container`

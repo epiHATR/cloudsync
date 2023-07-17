@@ -1,7 +1,6 @@
 package input
 
 import (
-	"cloudsync/src/helpers/output"
 	"fmt"
 	"os"
 	"strings"
@@ -9,38 +8,41 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func GetInputValue(flagName string, value string) (string, error) {
+func GetInputValue(flagName string, value string, cmd *cobra.Command) (string, error) {
+	errText := ""
 	if len(value) > 0 {
 		return value, nil
 	} else {
-		flagEnvName := "CLOUDSYNC_ENV_" + strings.ToUpper(strings.ReplaceAll(flagName, "-", "_"))
-		flagEnvValue := os.Getenv(flagEnvName)
-		if len(flagEnvValue) <= 0 {
-			return "", fmt.Errorf("no value found for flag %s (also environment variable %s)", flagName, flagEnvName)
-		} else {
-			output.PrintLog(fmt.Sprintf("found environment variables %s with value %s", flagEnvName, flagEnvValue))
-			return flagEnvValue, nil
-		}
-	}
-}
-
-func ValidateRequireFlags(flagSet []string, commandHelpText string, cmd *cobra.Command) error {
-	errText := []string{}
-	for _, flagName := range flagSet {
 		flag := cmd.Flag(flagName)
-		// if flag value was not provided
-		if flag == nil || flag.Changed == false {
+		// if flag value was not provided or just an empty string
+		if flag == nil || flag.Changed == false || len(flag.Value.String()) <= 0 {
 			// then we'll check environment variables starts with CLOUDSYNC_ENV_
 			flagEnvName := "CLOUDSYNC_ENV_" + strings.ToUpper(strings.ReplaceAll(flag.Name, "-", "_"))
 			flagEnvValue := os.Getenv(flagEnvName)
 			if len(flagEnvValue) <= 0 {
 				// add to errText that no value found for that flag
 				if len(flag.Shorthand) <= 0 {
-					errText = append(errText, fmt.Sprintf("--%s", flag.Name))
+					errText = fmt.Sprintf("--%s", flag.Name)
 				} else {
-					errText = append(errText, fmt.Sprintf("--%s/-%s", flag.Name, flag.Shorthand))
+					errText = fmt.Sprintf("--%s/-%s", flag.Name, flag.Shorthand)
 				}
+				return "", fmt.Errorf(errText)
+			} else {
+				return flagEnvName, nil
 			}
+		} else if flag.Changed {
+			return flag.Value.String(), nil
+		}
+		return "", nil
+	}
+}
+
+func ValidateRequireFlags(flagSet []string, commandHelpText string, cmd *cobra.Command) error {
+	errText := []string{}
+	for _, flagName := range flagSet {
+		_, err := GetInputValue(flagName, "", cmd)
+		if err != nil {
+			errText = append(errText, err.Error())
 		}
 	}
 
@@ -54,36 +56,62 @@ func ValidateRequireFlags(flagSet []string, commandHelpText string, cmd *cobra.C
 			// otherwise, return error with errText only
 			return fmt.Errorf(message)
 		}
-		// exit if Required Flags values not found
 	} else {
 		return nil
 	}
 }
 
-func GetActiveFlagSet(cmd *cobra.Command, cmdHelpText string, flagSets ...[]string) (error, []string) {
-	errorText := ""
+func IsFlagSetHasData(flagSet []string, cmd *cobra.Command) ([]string, bool) {
+	flag := []string{}
+	for _, flagName := range flagSet {
+		_, err := GetInputValue(flagName, "", cmd)
+		if err == nil {
+			flag = append(flag, flagName)
+			return flag, true
+		}
+	}
+	return flag, false
+}
+
+func GetActiveFlagSet(cmd *cobra.Command, cmdHelpText string, flagSets ...[]string) ([]string, error) {
+	errorText := []string{}
+	selectedFS := []string{}
 
 	if len(flagSets) <= 0 {
-		return fmt.Errorf("no flag set was provided"), []string{}
+		return []string{}, fmt.Errorf("no flag set was provided")
 	}
+
+	noFlagProvided := true
 
 	for _, flagSet := range flagSets {
 		err := ValidateRequireFlags(flagSet, "", cmd)
 		if err == nil {
-			return nil, flagSet
+			return flagSet, nil
 		} else {
-			errorText = err.Error()
+			flagHasData, isData := IsFlagSetHasData(flagSet, cmd)
+			if isData && len(errorText) <= 0 {
+				errorText = []string{err.Error()}
+				noFlagProvided = false
+				selectedFS = flagHasData
+			}
 		}
 	}
-	// return any error
-	if len(cmdHelpText) > 0 {
-		return fmt.Errorf("%s\n%s", errorText, cmdHelpText), []string{}
+
+	if noFlagProvided {
+		errorText = []string{PrintOutFlagAndShortFlag(flagSets[0], *cmd)}
 	} else {
-		return fmt.Errorf(errorText), []string{}
+		errorText = []string{PrintOutFlagAndShortFlag(GetShortestArray(selectedFS, true, flagSets...), *cmd)}
+	}
+
+	// return if error
+	if len(cmdHelpText) > 0 {
+		return []string{}, fmt.Errorf("the following arguments are required: %s\n%s", strings.Join(errorText, ", "), cmdHelpText)
+	} else {
+		return []string{}, fmt.Errorf("the following arguments are required: %s", strings.Join(errorText, ", "))
 	}
 }
 
-func sortStrings(arr []string) {
+func SortStrings(arr []string) {
 	for i := 0; i < len(arr)-1; i++ {
 		for j := i + 1; j < len(arr); j++ {
 			if arr[i] > arr[j] {
@@ -105,8 +133,9 @@ func AreFlagSetsEqual(arr1, arr2 []string) bool {
 	copy(sortedArr1, arr1)
 	sortedArr2 := make([]string, len(arr2))
 	copy(sortedArr2, arr2)
-	sortStrings(sortedArr1)
-	sortStrings(sortedArr2)
+
+	SortStrings(sortedArr1)
+	SortStrings(sortedArr2)
 
 	// Compare each element of the sorted arrays
 	for i := range sortedArr1 {
@@ -115,4 +144,58 @@ func AreFlagSetsEqual(arr1, arr2 []string) bool {
 		}
 	}
 	return true
+}
+
+func PrintOutFlagAndShortFlag(flagSet []string, cmd cobra.Command) string {
+	output := []string{}
+	for _, flagName := range flagSet {
+		flag := cmd.Flag(flagName)
+		if len(flag.Shorthand) > 0 {
+			output = append(output, fmt.Sprintf("--%s/%s", flag.Name, flag.Shorthand))
+		} else {
+			output = append(output, fmt.Sprintf("--%s", flag.Name))
+		}
+	}
+
+	return strings.Join(output, ", ")
+}
+
+func GetShortestArray(input []string, excludeInput bool, arrays ...[]string) []string {
+	if len(input) == 0 {
+		return nil
+	}
+
+	var shortestArray []string
+	shortestLength := -1
+
+	for _, arr := range arrays {
+		for _, item := range input {
+			if contains(arr, item) && (shortestLength == -1 || len(arr) < shortestLength) {
+				shortestArray = arr
+				shortestLength = len(arr)
+			}
+		}
+	}
+
+	if excludeInput {
+		// Filter out input elements from the shortestArray
+		filteredArray := make([]string, 0, len(shortestArray))
+		for _, item := range shortestArray {
+			if !contains(input, item) {
+				filteredArray = append(filteredArray, item)
+			}
+		}
+		return filteredArray
+	}
+
+	return shortestArray
+}
+
+func contains(arr []string, item string) bool {
+	for _, val := range arr {
+		if val == item {
+			return true
+		}
+	}
+	return false
 }

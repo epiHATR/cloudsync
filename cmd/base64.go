@@ -23,18 +23,12 @@ var base64Cmd = &cobra.Command{
 	Long:  "Base64 encoding & decoding",
 	Run: func(cmd *cobra.Command, args []string) {
 		if base64Decoded {
-			inputString, err := input.GetInputValue("input", cmdInputString)
-			helpers.HandleError(err)
-
-			rawDecodedText, err := base64.StdEncoding.DecodeString(inputString)
+			rawDecodedText, err := base64.StdEncoding.DecodeString(cmdInputString)
 			helpers.HandleError(err)
 			fmt.Println(string(rawDecodedText))
 
 		} else {
-			inputString, err := input.GetInputValue("input", cmdInputString)
-			helpers.HandleError(err)
-			rawEncodedText := base64.StdEncoding.EncodeToString([]byte(inputString))
-			helpers.HandleError(err)
+			rawEncodedText := base64.StdEncoding.EncodeToString([]byte(cmdInputString))
 			fmt.Println(string(rawEncodedText))
 		}
 	},
