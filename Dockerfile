@@ -11,10 +11,6 @@ RUN go mod download
 
 # PREPARE SOURCES
 COPY . .
-RUN rm -rf .github
-RUN rm -rf docs
-RUN rm -rf examples
-RUN rm -rf *.md 
 
 # HANDLER BUILD ARGUMENTS
 ARG COMMIT=1

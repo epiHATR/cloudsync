@@ -16,7 +16,7 @@ on:
         type: boolean
       PublishAlpine:
         required: false
-        description: Publish alpine (support non-HTTPS)
+        description: Publish alpine (minimized version)
         default: false
         type: boolean
 jobs:
@@ -139,7 +139,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: cloudsync CLI ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
           body_path: body.txt
           draft: false
           files: |
@@ -177,7 +177,7 @@ jobs:
           build-args: |
             COMMIT=${{ needs.CreateRelease.outputs.commit}}
             BUILD=${{ needs.CreateRelease.outputs.build}}
-            RELEASE_DATE="${{ needs.CreateRelease.outputs.releaseDate}}"
+            RELEASE_DATE=${{ needs.CreateRelease.outputs.releaseDate}}
           tags: |
             cloudsync/cloudsync:${{ needs.CreateRelease.outputs.tag}}
             cloudsync/cloudsync:latest
@@ -191,7 +191,7 @@ jobs:
           build-args: |
             COMMIT=${{ needs.CreateRelease.outputs.commit}}
             BUILD=${{ needs.CreateRelease.outputs.build}}
-            RELEASE_DATE="${{ needs.CreateRelease.outputs.releaseDate}}"
+            RELEASE_DATE=${{ needs.CreateRelease.outputs.releaseDate}}
           tags: |
             cloudsync/cloudsync:${{ needs.CreateRelease.outputs.tag}}
 
@@ -200,11 +200,13 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          context: ./Dockerfile-alpine
+          context: .
+          file: Dockerfile-alpine
           platforms: linux/amd64,linux/arm64
           build-args: |
             COMMIT=${{ needs.CreateRelease.outputs.commit}}
             BUILD=${{ needs.CreateRelease.outputs.build}}
-            RELEASE_DATE="${{ needs.CreateRelease.outputs.releaseDate}}"
+            RELEASE_DATE=${{ needs.CreateRelease.outputs.releaseDate}}
+            VERSION="${{ needs.CreateRelease.outputs.tag }}-alpine"
           tags: |
             cloudsync/cloudsync:alpine
