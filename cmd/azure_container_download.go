@@ -6,7 +6,6 @@ package cmd
 import (
 	"cloudsync/src/const/text"
 	helpers "cloudsync/src/helpers/error"
-	"cloudsync/src/helpers/file"
 	"cloudsync/src/helpers/input"
 	"cloudsync/src/helpers/provider/azure"
 	"fmt"
@@ -17,7 +16,7 @@ import (
 )
 
 var dldActiveFS []string = []string{}
-var saveTo string = ""
+var saveTo string = "/tmp/cloudsync/containers"
 var accountName string = ""
 var containerName string = ""
 var key string = ""
@@ -35,11 +34,8 @@ var downloadCmd = &cobra.Command{
 		log.Println(fmt.Sprintf("working on flagset %s", strings.Join(dldActiveFS, ", ")))
 
 		saveTo, err := input.GetInputValue("save-to", saveTo)
-		if err != nil {
-			homeDir, err := file.GetCurrentUserHomePath()
-			helpers.HandleError(err)
-			saveTo = homeDir + "/Downloads/" + containerName
-		}
+		helpers.HandleError(err)
+		saveTo = saveTo + "/" + containerName
 
 		if input.AreFlagSetsEqual(dldBaseFS, dldActiveFS) {
 			// download container with account-name, container, key
@@ -77,5 +73,5 @@ func init() {
 	downloadCmd.Flags().StringVarP(&key, "key", "", "", "Storage Account key to access Azure storage account")
 	downloadCmd.Flags().StringVarP(&connectionString, "connection-string", "", "", "Storage account connection string")
 	downloadCmd.Flags().StringVarP(&containerName, "container", "c", "", "Name of container you want to download.")
-	downloadCmd.Flags().StringVarP(&saveTo, "save-to", "", "", "Location where container and its blobs will be saved.")
+	downloadCmd.Flags().StringVarP(&saveTo, "save-to", "", saveTo, "Location where container and its blobs will be saved.")
 }

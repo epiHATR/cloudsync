@@ -1,6 +1,7 @@
 #####################################################################################################################
 #####################################################################################################################
 FROM golang:alpine3.18 as builder
+RUN apk --no-cache add ca-certificates
 
 #SET WORKING DIRECTORY FOR PROJECT AND GOROOT
 WORKDIR $GOPATH/cloudsync
@@ -11,10 +12,6 @@ RUN go mod download
 
 # PREPARE SOURCES
 COPY . .
-RUN rm -rf .github
-RUN rm -rf docs
-RUN rm -rf examples
-RUN rm -rf *.md 
 
 # HANDLER BUILD ARGUMENTS
 ARG COMMIT=1
@@ -33,7 +30,11 @@ RUN /tmp/builder/cloudsync version
 
 ######################################################################################################################
 ######################################################################################################################
-FROM golang:alpine3.18
+FROM scratch
 WORKDIR /usr/local/bin
+
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /etc/passwd /etc/passwd
+
 COPY --from=builder /tmp/builder/cloudsync .
 ENTRYPOINT [ "cloudsync" ]
