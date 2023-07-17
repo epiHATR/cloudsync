@@ -207,6 +207,6 @@ jobs:
             COMMIT=${{ needs.CreateRelease.outputs.commit}}
             BUILD=${{ needs.CreateRelease.outputs.build}}
             RELEASE_DATE=${{ needs.CreateRelease.outputs.releaseDate}}
-            VERSION="${{ needs.CreateRelease.outputs.tag }}-alpine"
+            VERSION=${{ needs.CreateRelease.outputs.tag }}-alpine
           tags: |
             cloudsync/cloudsync:alpine
