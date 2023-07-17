@@ -32,7 +32,7 @@ func PrintFormat(input string) {
 			case strings.HasPrefix(line, "|"):
 				printLine(line, trimmedLine, colorNone)
 			case strings.HasPrefix(line, "#"):
-				printLine(line, trimmedLine, colorGray)
+				printLine(line, fmt.Sprintf("#%s", trimmedLine), colorGray)
 			case strings.HasPrefix(line, ">"):
 				printLine(line, trimmedLine, colorCommand)
 			default:
