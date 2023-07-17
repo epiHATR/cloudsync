@@ -2,7 +2,7 @@ package text
 
 const CloudSync = `|Cloudsync CLI by Hai Tran <hidetran@gmail.com>
 
-#The cloudsync CLI supports methods that help you download, copy, and synchronize resources such as blobs and bucket files between cloud providers.
+|The cloudsync CLI supports methods that help you download, copy, and synchronize resources such as blobs and bucket files between cloud providers.
 
 |Providers				Object types                Methods
 >Azure					blob                        download
@@ -11,7 +11,7 @@ const CloudSync = `|Cloudsync CLI by Hai Tran <hidetran@gmail.com>
 >					file-share                  upload
 
 |Documentations
-https://github.com/epiHATR/cloudsync/tree/main/docs`
+~https://github.com/epiHATR/cloudsync/tree/main/docs`
 
 const Azure_Container_Download_HelpText = `
 |Examples
