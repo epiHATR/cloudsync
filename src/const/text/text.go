@@ -15,7 +15,7 @@ const CloudSync = `|Cloudsync CLI by Hai Tran <hidetran@gmail.com>
 
 const Azure_Container_Download_HelpText = `
 |Examples
-#download all blobs in a specific container to default location at path ~/Downloads/<myAccount>/myContainer
+#download all blobs in a specific container to default location at path ~/Downloads/myAccountName/myContainer
 >cloudsync azure container download --account-name myAccountName --container myContainer --key myStorageAccountKey
 
 #download all blobs in a specific container to a specific path

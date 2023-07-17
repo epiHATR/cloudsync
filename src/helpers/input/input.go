@@ -1,6 +1,8 @@
 package input
 
 import (
+	"cloudsync/src/helpers/common"
+	"cloudsync/src/helpers/output"
 	"fmt"
 	"os"
 	"strings"
@@ -8,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Get a Flag value in both of command flag and environment variable
 func GetInputValue(flagName string, value string, cmd *cobra.Command) (string, error) {
 	errText := ""
 	if len(value) > 0 {
@@ -37,6 +40,8 @@ func GetInputValue(flagName string, value string, cmd *cobra.Command) (string, e
 	}
 }
 
+// Check if provided Flagset has value (both of input value and environment variables).
+// Return error if one of flag in that Flagset has no value provided
 func ValidateRequireFlags(flagSet []string, commandHelpText string, cmd *cobra.Command) error {
 	errText := []string{}
 	for _, flagName := range flagSet {
@@ -61,46 +66,54 @@ func ValidateRequireFlags(flagSet []string, commandHelpText string, cmd *cobra.C
 	}
 }
 
-func IsFlagSetHasData(flagSet []string, cmd *cobra.Command) ([]string, bool) {
+// Check if a Flagset has one flag contains value. Return list of flags in specific flagset has data
+func IsOneFlagValueProvided(flagSet []string, cmd *cobra.Command) ([]string, bool) {
 	flag := []string{}
 	for _, flagName := range flagSet {
 		_, err := GetInputValue(flagName, "", cmd)
 		if err == nil {
 			flag = append(flag, flagName)
-			return flag, true
 		}
 	}
-	return flag, false
+	if len(flag) > 0 {
+		return flag, true
+	}
+	return []string{}, false
 }
 
-func GetActiveFlagSet(cmd *cobra.Command, cmdHelpText string, flagSets ...[]string) ([]string, error) {
-	errorText := []string{}
-	selectedFS := []string{}
+// Return the flag set and error(if failed) in the list of input flag set if it has value (in both of command flag value and environment value).
+func GetActiveFlagSet(cmd *cobra.Command, cmdHelpText string, allFS ...[]string) ([]string, error) {
+	output.PrintLog("getting active Flagset for command", cmd.Use)
 
-	if len(flagSets) <= 0 {
-		return []string{}, fmt.Errorf("no flag set was provided")
+	errorText := []string{}
+	flagsHasValue := []string{}
+
+	if len(allFS) <= 0 {
+		return []string{}, fmt.Errorf("please provide at least one flag set.")
 	}
 
 	noFlagProvided := true
 
-	for _, flagSet := range flagSets {
+	for _, flagSet := range allFS {
 		err := ValidateRequireFlags(flagSet, "", cmd)
 		if err == nil {
 			return flagSet, nil
 		} else {
-			flagHasData, isData := IsFlagSetHasData(flagSet, cmd)
-			if isData && len(errorText) <= 0 {
+			flagName, isProvided := IsOneFlagValueProvided(flagSet, cmd)
+			if isProvided && len(errorText) <= 0 {
 				errorText = []string{err.Error()}
 				noFlagProvided = false
-				selectedFS = flagHasData
+				flagsHasValue = flagName
 			}
 		}
 	}
 
 	if noFlagProvided {
-		errorText = []string{PrintOutFlagAndShortFlag(flagSets[0], *cmd)}
+		output.PrintLog("no Flag provided in command", cmd.Use)
+		errorText = []string{GetFlagsetString(allFS[0], true, *cmd)}
 	} else {
-		errorText = []string{PrintOutFlagAndShortFlag(GetShortestArray(selectedFS, true, flagSets...), *cmd)}
+		output.PrintLog("some Flags has value but other mandatory flags value was not provided.")
+		errorText = []string{GetFlagsetString(common.GetShortestArray(flagsHasValue, true, allFS...), true, *cmd)}
 	}
 
 	// return if error
@@ -111,91 +124,20 @@ func GetActiveFlagSet(cmd *cobra.Command, cmdHelpText string, flagSets ...[]stri
 	}
 }
 
-func SortStrings(arr []string) {
-	for i := 0; i < len(arr)-1; i++ {
-		for j := i + 1; j < len(arr); j++ {
-			if arr[i] > arr[j] {
-				arr[i], arr[j] = arr[j], arr[i]
-			}
-		}
-	}
-}
+// Get all flag in a flagset printed as a string include both of flag and its short version if exists
+func GetFlagsetString(flagSet []string, showShort bool, cmd cobra.Command) string {
+	var output []string
 
-func AreFlagSetsEqual(arr1, arr2 []string) bool {
-	// Check if the lengths of the arrays are equal
-	if len(arr1) != len(arr2) {
-		return false
-	}
-
-	// Sort both arrays to ensure consistent order
-	// before comparing the elements
-	sortedArr1 := make([]string, len(arr1))
-	copy(sortedArr1, arr1)
-	sortedArr2 := make([]string, len(arr2))
-	copy(sortedArr2, arr2)
-
-	SortStrings(sortedArr1)
-	SortStrings(sortedArr2)
-
-	// Compare each element of the sorted arrays
-	for i := range sortedArr1 {
-		if sortedArr1[i] != sortedArr2[i] {
-			return false
-		}
-	}
-	return true
-}
-
-func PrintOutFlagAndShortFlag(flagSet []string, cmd cobra.Command) string {
-	output := []string{}
 	for _, flagName := range flagSet {
 		flag := cmd.Flag(flagName)
-		if len(flag.Shorthand) > 0 {
-			output = append(output, fmt.Sprintf("--%s/%s", flag.Name, flag.Shorthand))
-		} else {
-			output = append(output, fmt.Sprintf("--%s", flag.Name))
+
+		flagStr := fmt.Sprintf("--%s", flagName)
+		if showShort && len(flag.Shorthand) > 0 {
+			flagStr = fmt.Sprintf("--%s/-%s", flagName, flag.Shorthand)
 		}
+
+		output = append(output, flagStr)
 	}
 
 	return strings.Join(output, ", ")
-}
-
-func GetShortestArray(input []string, excludeInput bool, arrays ...[]string) []string {
-	if len(input) == 0 {
-		return nil
-	}
-
-	var shortestArray []string
-	shortestLength := -1
-
-	for _, arr := range arrays {
-		for _, item := range input {
-			if contains(arr, item) && (shortestLength == -1 || len(arr) < shortestLength) {
-				shortestArray = arr
-				shortestLength = len(arr)
-			}
-		}
-	}
-
-	if excludeInput {
-		// Filter out input elements from the shortestArray
-		filteredArray := make([]string, 0, len(shortestArray))
-		for _, item := range shortestArray {
-			if !contains(input, item) {
-				filteredArray = append(filteredArray, item)
-			}
-		}
-		return filteredArray
-	}
-
-	return shortestArray
-}
-
-func contains(arr []string, item string) bool {
-	for _, val := range arr {
-		if val == item {
-			return true
-		}
-	}
-	return false
 }

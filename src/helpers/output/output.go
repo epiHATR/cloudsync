@@ -2,9 +2,9 @@ package output
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
-	"time"
 )
 
 const colorError = "\033[0;31m"
@@ -43,11 +43,10 @@ func PrintFormat(input string) {
 }
 
 func PrintError(input string) {
-	PrintFormat(input)
+	PrintFormat(fmt.Sprintf("ERROR %s", input))
 	os.Exit(1)
 }
 
-func PrintLog(input string) {
-	dt := time.Now()
-	fmt.Println(fmt.Sprintf("%s %s", dt.Format("2006-01-02 15:04:05"), input))
+func PrintLog(input ...string) {
+	log.Println(fmt.Sprintf("INFO %s", strings.Join(input, " ")))
 }

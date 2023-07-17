@@ -4,7 +4,7 @@ Copyright © 2023 Hai Tran <hidetran@gmail.com>
 package cmd
 
 import (
-	helpers "cloudsync/src/helpers/error"
+	"cloudsync/src/helpers/errorHelper"
 	"cloudsync/src/helpers/input"
 	"encoding/base64"
 	"fmt"
@@ -24,7 +24,7 @@ var base64Cmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if base64Decoded {
 			rawDecodedText, err := base64.StdEncoding.DecodeString(cmdInputString)
-			helpers.HandleError(err)
+			errorHelper.Handle(err)
 			fmt.Println(string(rawDecodedText))
 
 		} else {
@@ -35,7 +35,7 @@ var base64Cmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		requiredFlags := []string{"input"}
 		err := input.ValidateRequireFlags(requiredFlags, "", cmd)
-		helpers.HandleError(err)
+		errorHelper.Handle(err)
 	},
 }
 

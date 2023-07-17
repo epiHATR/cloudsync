@@ -5,7 +5,7 @@ package cmd
 
 import (
 	"cloudsync/src/const/text"
-	helpers "cloudsync/src/helpers/error"
+	"cloudsync/src/helpers/errorHelper"
 	"cloudsync/src/helpers/output"
 	"io/ioutil"
 	"log"
@@ -18,7 +18,7 @@ import (
 var isDebug bool = false
 
 var (
-	version     string = "v0.0.2"
+	version     string = "v0.0.3"
 	build       string = "0"
 	commit      string = "0"
 	releaseDate string = "0000-00-00 00:00:00"
@@ -44,7 +44,7 @@ func Execute() {
 	})
 
 	err := rootCmd.Execute()
-	helpers.HandleError(err)
+	errorHelper.Handle(err)
 }
 
 func init() {

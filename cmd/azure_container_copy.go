@@ -5,12 +5,12 @@ package cmd
 
 import (
 	"cloudsync/src/const/text"
-	helpers "cloudsync/src/helpers/error"
+	"cloudsync/src/helpers/common"
+	"cloudsync/src/helpers/errorHelper"
 	"cloudsync/src/helpers/input"
 	"cloudsync/src/helpers/output"
 	"cloudsync/src/helpers/provider/azure"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -37,19 +37,11 @@ var copyCmd = &cobra.Command{
 	Short: "Copy blobs and containers between Azure storage accounts.",
 	Long:  "Copy blobs and containers between Azure storage accounts.",
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println(fmt.Sprintf("working on flagset %s", strings.Join(cpActiveFS, ", ")))
+		output.PrintLog(fmt.Sprintf("working on flagset %s", strings.Join(cpActiveFS, ", ")))
 
-		if input.AreFlagSetsEqual(cpActiveFS, cpBaseFS) {
-			src_account, err := input.GetInputValue("source-account", src_account, cmd)
-			src_key, err = input.GetInputValue("source-key", src_key, cmd)
-			src_container, err = input.GetInputValue("source-container", src_container, cmd)
-			dest_account, err := input.GetInputValue("source-account", dest_account, cmd)
-			dest_key, err = input.GetInputValue("destination-key", dest_key, cmd)
-			dest_container, err = input.GetInputValue("destination-container", dest_container, cmd)
-			helpers.HandleError(err)
-
+		if common.IsSameArray(cpActiveFS, cpBaseFS) {
 			azure.CopyContainerWithKey(src_account, src_container, src_key, dest_account, dest_container, dest_key)
-		} else if input.AreFlagSetsEqual(cpActiveFS, cpConnFS) {
+		} else if common.IsSameArray(cpActiveFS, cpConnFS) {
 			output.PrintLog("working with connection string flag set")
 		}
 	},
@@ -57,7 +49,7 @@ var copyCmd = &cobra.Command{
 		// we need to verify what is the current cmd flag set user want to provided to the command
 		flags, err := input.GetActiveFlagSet(cmd, text.Azure_Container_Copy_HelpText, cpBaseFS, cpConnFS)
 		//print if there's any error
-		helpers.HandleError(err)
+		errorHelper.Handle(err)
 		cpActiveFS = flags
 	},
 }
