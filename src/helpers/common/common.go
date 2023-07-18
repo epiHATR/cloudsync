@@ -46,22 +46,30 @@ func GetShortestArray(input []string, excludeInput bool, arrays ...[]string) []s
 		return nil
 	}
 
-	var shortestArray []string
-	shortestLength := -1
+	var matchingArray []string
+	matchingScore := -1
 
 	for _, arr := range arrays {
+		score := 0
 		for _, item := range input {
-			if IsItemExistInArray(arr, item) && (shortestLength == -1 || len(arr) < shortestLength) {
-				shortestArray = arr
-				shortestLength = len(arr)
+			if IsItemExistInArray(arr, item) {
+				score++
 			}
+		}
+
+		if score > matchingScore {
+			matchingArray = arr
+			matchingScore = score
+		} else if score == matchingScore && len(arr) < len(matchingArray) {
+			matchingArray = arr
+			matchingScore = score
 		}
 	}
 
 	if excludeInput {
-		// Filter out input elements from the shortestArray
-		filteredArray := make([]string, 0, len(shortestArray))
-		for _, item := range shortestArray {
+		// Filter out input elements from the matchingArray
+		filteredArray := make([]string, 0, len(matchingArray))
+		for _, item := range matchingArray {
 			if !IsItemExistInArray(input, item) {
 				filteredArray = append(filteredArray, item)
 			}
@@ -69,7 +77,7 @@ func GetShortestArray(input []string, excludeInput bool, arrays ...[]string) []s
 		return filteredArray
 	}
 
-	return shortestArray
+	return matchingArray
 }
 
 // Check if a string exists in arr of strings

@@ -108,12 +108,15 @@ func GetActiveFlagSet(cmd *cobra.Command, cmdHelpText string, allFS ...[]string)
 		}
 	}
 
+	showFlagShorthand := true
 	if noFlagProvided {
 		output.PrintOut("LOGS", "no Flag provided in command", cmd.Use)
-		errorText = []string{GetFlagsetString(allFS[0], true, *cmd)}
+		errorText = []string{GetFlagsetString(allFS[0], showFlagShorthand, *cmd)}
 	} else {
 		output.PrintOut("LOGS", "some Flags has value but other mandatory flags value was not provided.")
-		errorText = []string{GetFlagsetString(common.GetShortestArray(flagsHasValue, true, allFS...), true, *cmd)}
+		fmt.Println(flagsHasValue)
+		excludedInput := true
+		errorText = []string{GetFlagsetString(common.GetShortestArray(flagsHasValue, excludedInput, allFS...), showFlagShorthand, *cmd)}
 	}
 
 	// return if error

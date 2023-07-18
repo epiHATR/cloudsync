@@ -14,7 +14,7 @@ import (
 var IsDebug bool = false
 
 var (
-	version     string = "v0.0.4"
+	version     string = "v0.0.5"
 	build       string = "0"
 	commit      string = "0"
 	releaseDate string = "0000-00-00 00:00:00"

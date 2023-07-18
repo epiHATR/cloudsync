@@ -23,7 +23,7 @@ var azUploadCmdPath string = ""
 
 var uldActiveFS []string = []string{}
 var uldBaseFS []string = []string{"account-name", "container", "key", "path"}
-var uldConnStringFS []string = []string{"container", "connection-string", "path"}
+var uldConnStringFS []string = []string{"connection-string", "container", "path"}
 
 // uploadCmd represents the upload command
 var azUploadCmd = &cobra.Command{
