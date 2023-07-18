@@ -2,6 +2,7 @@ package file
 
 import (
 	"cloudsync/src/helpers/errorHelper"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -36,4 +37,17 @@ func GetCurrentUserHomePath() (string, error) {
 	currentUser, err := user.Current()
 	errorHelper.Handle(err)
 	return currentUser.HomeDir, nil
+}
+
+func IsFilePath(path string) (bool, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false, fmt.Errorf("failed to identify path, %s", err)
+	}
+
+	if fileInfo.IsDir() {
+		return false, nil
+	}
+
+	return true, nil
 }

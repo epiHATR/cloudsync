@@ -7,6 +7,7 @@ import (
 	"cloudsync/src/helpers/output"
 	"context"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -97,5 +98,29 @@ func DownloadBlob(ctx context.Context, client *azblob.Client, containerName, blo
 
 	err = file.SaveToLocalFile(downloadedData.String(), fmt.Sprintf("%s/%s", path, blobName))
 	errorHelper.Handle(err)
-	output.PrintOut("INFO", fmt.Sprintf("downloaded blob %s", blobName))
+	output.PrintOut("LOGS", fmt.Sprintf("downloaded blob %s", blobName))
+}
+
+func CopyBlobs(ctx context.Context, sourceClient *azblob.Client, destClient *azblob.Client, srcContainer string, destContainer string, sourceBlobs []string) int {
+	totalFile := 0
+
+	var wg sync.WaitGroup
+	for _, blob := range sourceBlobs {
+		wg.Add(1)
+		go func(blob string) {
+			defer wg.Done()
+
+			DownloadBlob(ctx, sourceClient, srcContainer, blob, "/tmp")
+			filePath := "/tmp/" + blob
+			file, _ := os.OpenFile(filePath, os.O_RDONLY, 0)
+			defer file.Close()
+			_, err := destClient.UploadFile(context.TODO(), destContainer, blob, file, nil)
+			errorHelper.Handle(err)
+			_ = os.Remove(filePath)
+			output.PrintOut("INFO", "copied blob "+blob)
+			totalFile = totalFile + 1
+		}(blob)
+	}
+	wg.Wait()
+	return totalFile
 }

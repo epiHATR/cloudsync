@@ -30,8 +30,8 @@ var dest_conn string = ""
 var cpBaseFS []string = []string{"source-account", "source-container", "source-key", "destination-account", "destination-key"}
 var cpConnFS []string = []string{"source-container", "source-connection-string", "destination-container", "destination-connection-string"}
 
-// copyCmd represents the copy command
-var copyCmd = &cobra.Command{
+// azCopyCmd represents the copy command
+var azCopyCmd = &cobra.Command{
 	Use:   "copy",
 	Short: "Copy container between Azure storage accounts.",
 	Long:  "Copy container between Azure storage accounts.",
@@ -54,19 +54,19 @@ var copyCmd = &cobra.Command{
 }
 
 func init() {
-	azureContainerCmd.AddCommand(copyCmd)
+	azureContainerCmd.AddCommand(azCopyCmd)
 
-	copyCmd.Flags().StringVarP(&src_account, "source-account", "", "", "Name of storage account where you want to get its container copied.")
-	copyCmd.Flags().StringVarP(&src_container, "source-container", "", "", "Name of container you want to copy.")
-	copyCmd.Flags().StringVarP(&src_key, "source-key", "", "", "Source storage account key.")
-	copyCmd.Flags().StringVarP(&src_conn, "source-connection-string", "", "", "Source storage account connection string.")
+	azCopyCmd.Flags().StringVarP(&src_account, "source-account", "", "", "Name of storage account where you want to get its container copied.")
+	azCopyCmd.Flags().StringVarP(&src_container, "source-container", "", "", "Name of container you want to copy.")
+	azCopyCmd.Flags().StringVarP(&src_key, "source-key", "", "", "Source storage account key.")
+	azCopyCmd.Flags().StringVarP(&src_conn, "source-connection-string", "", "", "Source storage account connection string.")
 
-	copyCmd.Flags().StringVarP(&dest_account, "destination-account", "", "", "Name of storage account where you want to get its container copied.")
-	copyCmd.Flags().StringVarP(&dest_container, "destination-container", "", "", "Name of storage account where you want to get its container copied.")
-	copyCmd.Flags().StringVarP(&dest_key, "destination-key", "", "", "Destination storage account key.")
-	copyCmd.Flags().StringVarP(&dest_conn, "destination-connection-string", "", "", "Destination storage account connection string.")
+	azCopyCmd.Flags().StringVarP(&dest_account, "destination-account", "", "", "Name of storage account where you want to get its container copied.")
+	azCopyCmd.Flags().StringVarP(&dest_container, "destination-container", "", "", "Name of storage account where you want to get its container copied.")
+	azCopyCmd.Flags().StringVarP(&dest_key, "destination-key", "", "", "Destination storage account key.")
+	azCopyCmd.Flags().StringVarP(&dest_conn, "destination-connection-string", "", "", "Destination storage account connection string.")
 
-	copyCmd.Flags().SortFlags = false
+	azCopyCmd.Flags().SortFlags = false
 
 	azureContainerCmd.SuggestFor = append(azureContainerCmd.SuggestFor, "copy")
 }
