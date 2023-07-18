@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -123,4 +124,31 @@ func CopyBlobs(ctx context.Context, sourceClient *azblob.Client, destClient *azb
 	}
 	wg.Wait()
 	return totalFile
+}
+
+func UploadBlobs(fileList []string, fromPath string, toContainer string, client *azblob.Client) {
+	output.PrintOut("LOGS", fmt.Sprintf("found %d files in the folder %s", len(fileList), fromPath))
+	selectedFolder := filepath.Base(fromPath)
+
+	var wg sync.WaitGroup
+	for _, filePath := range fileList {
+		wg.Add(1)
+
+		go func(filePath string) {
+			defer wg.Done()
+			blobName := file.GetFilePathFromFolder(fromPath, filePath)
+			fileName, err := file.GetFileNameFromPath(filePath)
+			errorHelper.Handle(err)
+
+			file, _ := os.OpenFile(filePath, os.O_RDONLY, 0)
+			defer file.Close()
+			_, err = client.UploadFile(context.TODO(), toContainer, fmt.Sprintf("%s/%s", selectedFolder, blobName), file, nil)
+			errorHelper.Handle(err)
+
+			output.PrintOut("INFO", fmt.Sprintf("uploaded file %s to blob %s/%s", fileName, selectedFolder, blobName))
+		}(filePath)
+	}
+	wg.Wait()
+
+	output.PrintOut("INFO", fmt.Sprintf("Folder %s has been upload to %s", selectedFolder, toContainer))
 }

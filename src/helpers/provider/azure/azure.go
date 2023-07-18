@@ -2,10 +2,12 @@ package azure
 
 import (
 	"cloudsync/src/helpers/errorHelper"
+	"cloudsync/src/helpers/file"
 	"cloudsync/src/helpers/output"
 	azurelib "cloudsync/src/library/azure"
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 )
 
@@ -54,5 +56,24 @@ func CopyContainerWithKey(srcAccount, srcContainer, srcKey, destAccount, destCon
 }
 
 func UploadToContainerWithKey(accountName, containerName, key, pathToUpload string) {
+	isFileUpload, err := file.IsFilePath(pathToUpload)
+	destClient, err := azurelib.VerifyStorageAccountWithKey(accountName, key)
+	errorHelper.Handle(err)
 
+	if isFileUpload {
+		output.PrintOut("INFO", fmt.Sprintf("Start uploading file to the container %s", containerName))
+		blobName, err := file.GetFileNameFromPath(pathToUpload)
+		errorHelper.Handle(err)
+		file, _ := os.OpenFile(pathToUpload, os.O_RDONLY, 0)
+		defer file.Close()
+		_, err = destClient.UploadFile(context.TODO(), containerName, blobName, file, nil)
+		errorHelper.Handle(err)
+		output.PrintOut("INFO", fmt.Sprintf("uploaded file %s to blob %s", pathToUpload, blobName))
+
+	} else {
+		output.PrintOut("INFO", fmt.Sprintf("Start uploading folder to the container %s", containerName))
+		fileList, err := file.GetFiles(pathToUpload)
+		errorHelper.Handle(err)
+		azurelib.UploadBlobs(fileList, pathToUpload, containerName, destClient)
+	}
 }

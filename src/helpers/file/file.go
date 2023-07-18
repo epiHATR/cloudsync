@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 )
 
 func GetFileNameFromPath(path string) (string, error) {
@@ -50,4 +51,39 @@ func IsFilePath(path string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func GetFiles(path string) ([]string, error) {
+	var fileNames []string
+
+	// Check if the path exists
+	_, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return nil, fmt.Errorf("Path does not exist: %s", path)
+	}
+
+	err = filepath.Walk(path, func(filePath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			fileNames = append(fileNames, filePath)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read files: %s", err)
+	}
+
+	return fileNames, nil
+}
+
+func GetFilePathFromFolder(folderPath, filePath string) string {
+	relPath, err := filepath.Rel(folderPath, filePath)
+	if err != nil || strings.HasPrefix(relPath, "..") {
+		return filePath
+	}
+
+	return relPath
 }

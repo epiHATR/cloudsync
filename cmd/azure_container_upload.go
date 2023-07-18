@@ -31,10 +31,11 @@ var azUploadCmd = &cobra.Command{
 	Short: "Upload a folder/file to Azure storage account container. ",
 	Long:  "Upload a folder/file to Azure storage account container. ",
 	Run: func(cmd *cobra.Command, args []string) {
-		output.PrintOut("LOGS", fmt.Sprintf("working on flagset %s", strings.Join(cpActiveFS, ", ")))
+		output.PrintOut("LOGS", fmt.Sprintf("working on flagset %s", strings.Join(uldBaseFS, ", ")))
 
 		if common.IsSameArray(uldBaseFS, uldActiveFS) {
-			azure.UploadToContainerWithKey(accountName, containerName, key, azUploadCmdPath)
+			azure.UploadToContainerWithKey(azUploadCmdAccount, azUploadCmdContainer, azUploadCmdKey, azUploadCmdPath)
+		} else {
 		}
 
 	},
@@ -42,7 +43,7 @@ var azUploadCmd = &cobra.Command{
 		// we need to verify what is the current cmd flag set user want to provided to the command
 		flags, err := input.GetActiveFlagSet(cmd, "", uldBaseFS, uldConnStringFS)
 		errorHelper.Handle(err)
-		cpActiveFS = flags
+		uldActiveFS = flags
 	},
 }
 
