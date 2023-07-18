@@ -7,29 +7,30 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
 )
 
 // Download container in a specific Storage account to a specific path, given access by storage account connection string
 func DownloadContainerWithConnectionString(connectionString, containerName, path string) {
-	output.PrintLog(fmt.Sprintf("Start downloading blobs in container %s to %s", containerName, path))
+	output.PrintOut("INFO", fmt.Sprintf("Start downloading blobs in container %s to %s", containerName, path))
 	client, err := azurelib.VerifyStorageAccountWithConnectionString(connectionString)
 	errorHelper.Handle(err)
 
 	azurelib.DownloadBlobs(client, containerName, path)
 
-	output.PrintLog(fmt.Sprintf("All blobs in %s has been transferred to %s", containerName, path))
+	output.PrintOut("INFO", fmt.Sprintf("All blobs in %s has been transferred to %s", containerName, path))
 }
 
 // Download container in a specific Storage account to a specific path, given access by storage account key
 func DownloadContainerWithKey(accountName, containerName, key, path string) {
-	output.PrintLog(fmt.Sprintf("Start downloading blobs in %s/%s to %s", containerName, accountName, path))
+	output.PrintOut("INFO", fmt.Sprintf("Start downloading blobs in %s/%s to %s", containerName, accountName, path))
 	client, err := azurelib.VerifyStorageAccountWithKey(accountName, key)
 	errorHelper.Handle(err)
 
 	azurelib.DownloadBlobs(client, containerName, path)
 
-	output.PrintLog(fmt.Sprintf("All blobs in %s has been transferred to %s", containerName, path))
+	output.PrintOut("INFO", fmt.Sprintf("All blobs in %s has been transferred to %s", containerName, path))
 }
 
 // Copy a container from a specific Storage account to the other Storage Account, givent access by keys
@@ -51,7 +52,7 @@ func CopyContainerWithKey(srcAccount, srcContainer, srcKey, destAccount, destCon
 	azurelib.CreateContainer(ctx, *destClient, destContainer)
 
 	// Start copying blobs
-	output.PrintLog(fmt.Sprintf("Copying all blobs from storage account %s (container %s) to storage account %s (container %s)", srcAccount, srcContainer, destAccount, destContainer))
+	output.PrintOut("INFO", fmt.Sprintf("Copying all blobs from storage account %s (container %s) to storage account %s (container %s)", srcAccount, srcContainer, destAccount, destContainer))
 	totalFile := 0
 	sourceBlobs, err := azurelib.GetBlobsInContainer(*sourceClient, srcContainer)
 	errorHelper.Handle(err)
@@ -68,11 +69,11 @@ func CopyContainerWithKey(srcAccount, srcContainer, srcKey, destAccount, destCon
 			defer file.Close()
 			_, err = destClient.UploadFile(context.TODO(), destContainer, blob, file, nil)
 			_ = os.Remove(filePath)
-			output.PrintLog("copied blob " + blob)
+			output.PrintOut("INFO", "copied blob "+blob)
 			totalFile = totalFile + 1
 		}(blob)
 	}
 
 	wg.Wait()
-	output.PrintLog("total", string(totalFile), "blobs was copied to", destContainer)
+	output.PrintOut("INFO", "total", strconv.Itoa(totalFile), "blobs was copied to", destContainer)
 }

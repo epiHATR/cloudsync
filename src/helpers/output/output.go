@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+var IsDebug = false
+
 const colorError = "\033[0;31m"
 const colorNone = "\033[0m"
 
@@ -42,11 +44,39 @@ func PrintFormat(input string) {
 	}
 }
 
-func PrintError(input string) {
-	PrintFormat(fmt.Sprintf("ERROR %s", input))
-	os.Exit(1)
-}
-
-func PrintLog(input ...string) {
-	log.Println(fmt.Sprintf("INFO %s", strings.Join(input, " ")))
+func PrintOut(logType string, input ...string) {
+	switch logType {
+	case "INFO":
+		{
+			if IsDebug {
+				logger := log.New(os.Stdout, "INFO ", 3)
+				logger.Println(strings.Join(input, " "))
+			} else {
+				logger := log.New(os.Stdout, "", 0)
+				logger.Println(strings.Join(input, " "))
+			}
+		}
+	case "ERROR":
+		{
+			PrintFormat(fmt.Sprintf("%s", strings.Join(input, " ")))
+			os.Exit(1)
+		}
+	case "LOGS":
+		{
+			if IsDebug {
+				logger := log.New(os.Stdout, "LOGS ", 3)
+				logger.Println(fmt.Sprintf("%s", strings.Join(input, " ")))
+			}
+		}
+	default:
+		{
+			if IsDebug {
+				logger := log.New(os.Stdout, "INFO ", 3)
+				logger.Println(strings.Join(input, " "))
+			} else {
+				logger := log.New(os.Stdout, "", 0)
+				logger.Println(strings.Join(input, " "))
+			}
+		}
+	}
 }

@@ -4,7 +4,6 @@ Copyright © 2023 Hai Tran <hidetran@gmail.com>
 package cmd
 
 import (
-	"cloudsync/src/const/text"
 	"cloudsync/src/helpers/common"
 	"cloudsync/src/helpers/errorHelper"
 	"cloudsync/src/helpers/input"
@@ -34,21 +33,21 @@ var cpConnFS []string = []string{"source-container", "source-connection-string",
 // copyCmd represents the copy command
 var copyCmd = &cobra.Command{
 	Use:   "copy",
-	Short: "Copy blobs and containers between Azure storage accounts.",
-	Long:  "Copy blobs and containers between Azure storage accounts.",
+	Short: "Copy container between Azure storage accounts.",
+	Long:  "Copy container between Azure storage accounts.",
 	Run: func(cmd *cobra.Command, args []string) {
-		output.PrintLog(fmt.Sprintf("working on flagset %s", strings.Join(cpActiveFS, ", ")))
+		output.PrintOut("LOGS", fmt.Sprintf("working on flagset %s", strings.Join(cpActiveFS, ", ")))
 
 		if common.IsSameArray(cpActiveFS, cpBaseFS) {
+			//copy from source to destination with storage account key
 			azure.CopyContainerWithKey(src_account, src_container, src_key, dest_account, dest_container, dest_key)
 		} else if common.IsSameArray(cpActiveFS, cpConnFS) {
-			output.PrintLog("working with connection string flag set")
+			//copy from source to destination with connection string
 		}
 	},
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// we need to verify what is the current cmd flag set user want to provided to the command
-		flags, err := input.GetActiveFlagSet(cmd, text.Azure_Container_Copy_HelpText, cpBaseFS, cpConnFS)
-		//print if there's any error
+		flags, err := input.GetActiveFlagSet(cmd, "", cpBaseFS, cpConnFS)
 		errorHelper.Handle(err)
 		cpActiveFS = flags
 	},
@@ -56,6 +55,7 @@ var copyCmd = &cobra.Command{
 
 func init() {
 	azureContainerCmd.AddCommand(copyCmd)
+
 	copyCmd.Flags().StringVarP(&src_account, "source-account", "", "", "Name of storage account where you want to get its container copied.")
 	copyCmd.Flags().StringVarP(&src_container, "source-container", "", "", "Name of container you want to copy.")
 	copyCmd.Flags().StringVarP(&src_key, "source-key", "", "", "Source storage account key.")
@@ -65,4 +65,8 @@ func init() {
 	copyCmd.Flags().StringVarP(&dest_container, "destination-container", "", "", "Name of storage account where you want to get its container copied.")
 	copyCmd.Flags().StringVarP(&dest_key, "destination-key", "", "", "Destination storage account key.")
 	copyCmd.Flags().StringVarP(&dest_conn, "destination-connection-string", "", "", "Destination storage account connection string.")
+
+	copyCmd.Flags().SortFlags = false
+
+	azureContainerCmd.SuggestFor = append(azureContainerCmd.SuggestFor, "copy")
 }

@@ -30,9 +30,9 @@ var dldConnStringFS []string = []string{"container", "connection-string"}
 var downloadCmd = &cobra.Command{
 	Use:   "download",
 	Short: "Download a specific container from Azure Storage Account.",
-	Long:  "Download a specific container from Azure Storage Account.",
+	Long:  "Download a specific container(with child blobs) from Azure Storage Account.",
 	Run: func(cmd *cobra.Command, args []string) {
-		output.PrintLog(fmt.Sprintf("working on flagset %s", strings.Join(dldActiveFS, ", ")))
+		output.PrintOut("LOGS", fmt.Sprintf("working on flagset %s", strings.Join(dldActiveFS, ", ")))
 
 		saveTo, err := input.GetInputValue("save-to", saveTo, cmd)
 		errorHelper.Handle(err)
@@ -44,12 +44,12 @@ var downloadCmd = &cobra.Command{
 			azure.DownloadContainerWithConnectionString(connectionString, containerName, saveTo)
 		} else {
 			// we will define another download method here
+			output.PrintFormat(text.Azure_Container_Download_HelpText)
 		}
 	},
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// we need to verify what is the current cmd flag set user want to provided to the command
-		flags, err := input.GetActiveFlagSet(cmd, text.Azure_Container_Download_HelpText, dldBaseFS, dldConnStringFS)
-		//print if there's any error
+		flags, err := input.GetActiveFlagSet(cmd, "", dldBaseFS, dldConnStringFS)
 		errorHelper.Handle(err)
 		dldActiveFS = flags
 	},
@@ -58,8 +58,9 @@ var downloadCmd = &cobra.Command{
 func init() {
 	azureContainerCmd.AddCommand(downloadCmd)
 	downloadCmd.Flags().StringVarP(&accountName, "account-name", "a", "", "Name of storage account where you want to get its container downloaded.")
-	downloadCmd.Flags().StringVarP(&key, "key", "", "", "Storage Account key to access Azure storage account")
-	downloadCmd.Flags().StringVarP(&connectionString, "connection-string", "", "", "Storage account connection string")
 	downloadCmd.Flags().StringVarP(&containerName, "container", "c", "", "Name of container you want to download.")
+	downloadCmd.Flags().StringVarP(&key, "key", "k", "", "Storage Account key to access Azure storage account")
+	downloadCmd.Flags().StringVarP(&connectionString, "connection-string", "", "", "Storage account connection string")
 	downloadCmd.Flags().StringVarP(&saveTo, "save-to", "", saveTo, "Location where container and its blobs will be saved.")
+	downloadCmd.Flags().SortFlags = false
 }

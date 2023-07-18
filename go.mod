@@ -7,6 +7,7 @@ require github.com/spf13/cobra v1.7.0
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.6.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.3.0 // indirect
+	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/cilium/ebpf v0.7.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect

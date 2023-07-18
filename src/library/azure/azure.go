@@ -78,10 +78,8 @@ func DownloadBlobs(client *azblob.Client, containerName, path string) {
 		go func(blobName string) {
 			defer wg.Done()
 			DownloadBlob(ctx, client, containerName, blobName, path)
-			output.PrintLog("downloaded blob " + blobName)
 		}(blob)
 	}
-
 	wg.Wait()
 }
 
@@ -99,4 +97,5 @@ func DownloadBlob(ctx context.Context, client *azblob.Client, containerName, blo
 
 	err = file.SaveToLocalFile(downloadedData.String(), fmt.Sprintf("%s/%s", path, blobName))
 	errorHelper.Handle(err)
+	output.PrintOut("INFO", fmt.Sprintf("downloaded blob %s", blobName))
 }

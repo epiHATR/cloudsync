@@ -4,6 +4,6 @@ import "cloudsync/src/helpers/output"
 
 func Handle(err error) {
 	if err != nil {
-		output.PrintError(err.Error())
+		output.PrintOut("ERROR", err.Error())
 	}
 }

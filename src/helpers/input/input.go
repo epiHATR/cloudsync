@@ -83,7 +83,7 @@ func IsOneFlagValueProvided(flagSet []string, cmd *cobra.Command) ([]string, boo
 
 // Return the flag set and error(if failed) in the list of input flag set if it has value (in both of command flag value and environment value).
 func GetActiveFlagSet(cmd *cobra.Command, cmdHelpText string, allFS ...[]string) ([]string, error) {
-	output.PrintLog("getting active Flagset for command", cmd.Use)
+	output.PrintOut("LOGS", "getting active Flagset for command", cmd.Use)
 
 	errorText := []string{}
 	flagsHasValue := []string{}
@@ -109,10 +109,10 @@ func GetActiveFlagSet(cmd *cobra.Command, cmdHelpText string, allFS ...[]string)
 	}
 
 	if noFlagProvided {
-		output.PrintLog("no Flag provided in command", cmd.Use)
+		output.PrintOut("LOGS", "no Flag provided in command", cmd.Use)
 		errorText = []string{GetFlagsetString(allFS[0], true, *cmd)}
 	} else {
-		output.PrintLog("some Flags has value but other mandatory flags value was not provided.")
+		output.PrintOut("LOGS", "some Flags has value but other mandatory flags value was not provided.")
 		errorText = []string{GetFlagsetString(common.GetShortestArray(flagsHasValue, true, allFS...), true, *cmd)}
 	}
 
