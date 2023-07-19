@@ -14,20 +14,24 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 )
 
+// Get a Storage Account client with key
 func VerifyStorageAccountWithKey(accountName, key string) (*azblob.Client, error) {
 	serviceUrl := fmt.Sprintf("https://%s.blob.core.windows.net", accountName)
 	credential, err := azblob.NewSharedKeyCredential(accountName, key)
+	errorHelper.Handle(err, false)
 	client, err := azblob.NewClientWithSharedKeyCredential(serviceUrl, credential, nil)
-	errorHelper.Handle(err)
+	errorHelper.Handle(err, false)
 	return client, nil
 }
 
+// Get a Storage Account client with connection string
 func VerifyStorageAccountWithConnectionString(connectionString string) (*azblob.Client, error) {
 	client, err := azblob.NewClientFromConnectionString(connectionString, nil)
-	errorHelper.Handle(err)
+	errorHelper.Handle(err, false)
 	return client, nil
 }
 
+// Get blobs of specific container in a specific Storage Account
 func GetBlobsInContainer(client azblob.Client, containerName string) ([]string, error) {
 	blobs := []string{}
 	pager := client.NewListBlobsFlatPager(containerName, &azblob.ListBlobsFlatOptions{
@@ -36,7 +40,7 @@ func GetBlobsInContainer(client azblob.Client, containerName string) ([]string, 
 
 	for pager.More() {
 		resp, err := pager.NextPage(context.TODO())
-		errorHelper.Handle(err)
+		errorHelper.Handle(err, false)
 
 		for _, blob := range resp.Segment.BlobItems {
 			blobs = append(blobs, *blob.Name)
@@ -45,6 +49,7 @@ func GetBlobsInContainer(client azblob.Client, containerName string) ([]string, 
 	return blobs, nil
 }
 
+// Create a container in a specific Storage Account
 func CreateContainer(ctx context.Context, client azblob.Client, containerName string) error {
 	isContainerExist := false
 	pager := client.NewListContainersPager(&azblob.ListContainersOptions{
@@ -53,7 +58,7 @@ func CreateContainer(ctx context.Context, client azblob.Client, containerName st
 
 	for pager.More() {
 		resp, err := pager.NextPage(context.TODO())
-		errorHelper.Handle(err)
+		errorHelper.Handle(err, false)
 
 		for _, container := range resp.ContainerItems {
 			if *container.Name == containerName {
@@ -63,45 +68,52 @@ func CreateContainer(ctx context.Context, client azblob.Client, containerName st
 	}
 	if isContainerExist == false {
 		_, err := client.CreateContainer(ctx, containerName, nil)
-		errorHelper.Handle(err)
+		errorHelper.Handle(err, false)
 	}
 	return nil
 }
 
+// Download all blobs in a specific Storage Account
 func DownloadBlobs(client *azblob.Client, containerName, path string) {
 	ctx := context.Background()
 
 	blobs, err := GetBlobsInContainer(*client, containerName)
-	errorHelper.Handle(err)
+	errorHelper.Handle(err, false)
 
 	var wg sync.WaitGroup
 	for _, blob := range blobs {
 		wg.Add(1)
 		go func(blobName string) {
 			defer wg.Done()
-			DownloadBlob(ctx, client, containerName, blobName, path)
+			DownloadBlob(ctx, client, containerName, blobName, path, true)
 		}(blob)
 	}
 	wg.Wait()
 }
 
-func DownloadBlob(ctx context.Context, client *azblob.Client, containerName, blobName string, path string) {
+// Download a specific blob in a Storage Account
+func DownloadBlob(ctx context.Context, client *azblob.Client, containerName, blobName string, path string, showOutput bool) {
 	get, err := client.DownloadStream(ctx, containerName, blobName, nil)
-	errorHelper.Handle(err)
+	errorHelper.Handle(err, false)
 
 	downloadedData := bytes.Buffer{}
 	retryReader := get.NewRetryReader(ctx, &azblob.RetryReaderOptions{})
 	_, err = downloadedData.ReadFrom(retryReader)
-	errorHelper.Handle(err)
+	errorHelper.Handle(err, false)
 
 	err = retryReader.Close()
-	errorHelper.Handle(err)
+	errorHelper.Handle(err, false)
 
 	err = file.SaveToLocalFile(downloadedData.String(), fmt.Sprintf("%s/%s", path, blobName))
-	errorHelper.Handle(err)
-	output.PrintOut("LOGS", fmt.Sprintf("downloaded blob %s", blobName))
+	errorHelper.Handle(err, false)
+	if showOutput == true {
+		output.PrintOut("INFO", fmt.Sprintf("downloaded blob %s", blobName))
+	} else {
+		output.PrintOut("LOGS", fmt.Sprintf("downloaded blob %s", blobName))
+	}
 }
 
+// Copy blobs between Storage accounts
 func CopyBlobs(ctx context.Context, sourceClient *azblob.Client, destClient *azblob.Client, srcContainer string, destContainer string, sourceBlobs []string) int {
 	totalFile := 0
 
@@ -111,12 +123,12 @@ func CopyBlobs(ctx context.Context, sourceClient *azblob.Client, destClient *azb
 		go func(blob string) {
 			defer wg.Done()
 
-			DownloadBlob(ctx, sourceClient, srcContainer, blob, "/tmp")
+			DownloadBlob(ctx, sourceClient, srcContainer, blob, "/tmp", false)
 			filePath := "/tmp/" + blob
 			file, _ := os.OpenFile(filePath, os.O_RDONLY, 0)
 			defer file.Close()
 			_, err := destClient.UploadFile(context.TODO(), destContainer, blob, file, nil)
-			errorHelper.Handle(err)
+			errorHelper.Handle(err, false)
 			_ = os.Remove(filePath)
 			output.PrintOut("INFO", "copied blob "+blob)
 			totalFile = totalFile + 1
@@ -126,29 +138,41 @@ func CopyBlobs(ctx context.Context, sourceClient *azblob.Client, destClient *azb
 	return totalFile
 }
 
+// Upload files to a specific container in a Storage Account
 func UploadBlobs(fileList []string, fromPath string, toContainer string, client *azblob.Client) {
-	output.PrintOut("LOGS", fmt.Sprintf("found %d files in the folder %s", len(fileList), fromPath))
-	selectedFolder := filepath.Base(fromPath)
+	output.PrintOut("LOGS", fmt.Sprintf("found %d files in the path %s", len(fileList), fromPath))
 
-	var wg sync.WaitGroup
-	for _, filePath := range fileList {
-		wg.Add(1)
+	pathInfo, err := os.Stat(fromPath)
+	errorHelper.Handle(err, false)
 
-		go func(filePath string) {
-			defer wg.Done()
-			blobName := file.GetFilePathFromFolder(fromPath, filePath)
-			fileName, err := file.GetFileNameFromPath(filePath)
-			errorHelper.Handle(err)
+	if pathInfo.IsDir() {
+		selectedFolder := filepath.Base(fromPath)
+		var wg sync.WaitGroup
+		for _, filePath := range fileList {
+			wg.Add(1)
 
-			file, _ := os.OpenFile(filePath, os.O_RDONLY, 0)
-			defer file.Close()
-			_, err = client.UploadFile(context.TODO(), toContainer, fmt.Sprintf("%s/%s", selectedFolder, blobName), file, nil)
-			errorHelper.Handle(err)
+			go func(filePath string) {
+				defer wg.Done()
+				blobName := file.GetFilePathFromFolder(fromPath, filePath)
+				fileName, err := file.GetFileNameFromPath(filePath)
+				errorHelper.Handle(err, false)
 
-			output.PrintOut("INFO", fmt.Sprintf("uploaded file %s to blob %s/%s", fileName, selectedFolder, blobName))
-		}(filePath)
+				file, _ := os.OpenFile(filePath, os.O_RDONLY, 0)
+				defer file.Close()
+				_, err = client.UploadFile(context.TODO(), toContainer, fmt.Sprintf("%s/%s", selectedFolder, blobName), file, nil)
+				errorHelper.Handle(err, false)
+
+				output.PrintOut("INFO", fmt.Sprintf("uploaded file %s to blob %s/%s", fileName, selectedFolder, blobName))
+			}(filePath)
+		}
+		wg.Wait()
+		output.PrintOut("INFO", fmt.Sprintf("Folder %s has been upload to %s", selectedFolder, toContainer))
+	} else {
+		blobName, err := file.GetFileNameFromPath(fromPath)
+		file, _ := os.OpenFile(fromPath, os.O_RDONLY, 0)
+		defer file.Close()
+		_, err = client.UploadFile(context.TODO(), toContainer, blobName, file, nil)
+		errorHelper.Handle(err, false)
+		output.PrintOut("INFO", fmt.Sprintf("uploaded file %s to blob at %s/%s", fromPath, toContainer, blobName))
 	}
-	wg.Wait()
-
-	output.PrintOut("INFO", fmt.Sprintf("Folder %s has been upload to %s", selectedFolder, toContainer))
 }

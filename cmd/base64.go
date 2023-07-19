@@ -24,7 +24,7 @@ var base64Cmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if base64Decoded {
 			rawDecodedText, err := base64.StdEncoding.DecodeString(cmdInputString)
-			errorHelper.Handle(err)
+			errorHelper.Handle(err, false)
 			fmt.Println(string(rawDecodedText))
 
 		} else {
@@ -35,7 +35,7 @@ var base64Cmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		requiredFlags := []string{"input"}
 		err := input.ValidateRequireFlags(requiredFlags, "", cmd)
-		errorHelper.Handle(err)
+		errorHelper.Handle(err, true)
 	},
 }
 

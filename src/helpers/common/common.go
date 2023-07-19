@@ -42,10 +42,6 @@ func IsSameArray(arr1, arr2 []string) bool {
 // Find the shortest array includes the input array.
 // Return whole result or exclude input from result
 func GetShortestArray(input []string, excludeInput bool, arrays ...[]string) []string {
-	if len(input) == 0 {
-		return nil
-	}
-
 	var matchingArray []string
 	matchingScore := -1
 

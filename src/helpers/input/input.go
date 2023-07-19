@@ -14,6 +14,7 @@ import (
 func GetInputValue(flagName string, value string, cmd *cobra.Command) (string, error) {
 	errText := ""
 	if len(value) > 0 {
+		output.PrintOut("LOGS", flagName, "has value as", value)
 		return value, nil
 	} else {
 		flag := cmd.Flag(flagName)
@@ -31,7 +32,7 @@ func GetInputValue(flagName string, value string, cmd *cobra.Command) (string, e
 				}
 				return "", fmt.Errorf(errText)
 			} else {
-				return flagEnvName, nil
+				return flagEnvValue, nil
 			}
 		} else if flag.Changed {
 			return flag.Value.String(), nil
@@ -67,7 +68,7 @@ func ValidateRequireFlags(flagSet []string, commandHelpText string, cmd *cobra.C
 }
 
 // Check if a Flagset has one flag contains value. Return list of flags in specific flagset has data
-func IsOneFlagValueProvided(flagSet []string, cmd *cobra.Command) ([]string, bool) {
+func GetFlagsHasValueInFS(flagSet []string, cmd *cobra.Command) []string {
 	flag := []string{}
 	for _, flagName := range flagSet {
 		_, err := GetInputValue(flagName, "", cmd)
@@ -76,55 +77,9 @@ func IsOneFlagValueProvided(flagSet []string, cmd *cobra.Command) ([]string, boo
 		}
 	}
 	if len(flag) > 0 {
-		return flag, true
+		return flag
 	}
-	return []string{}, false
-}
-
-// Return the flag set and error(if failed) in the list of input flag set if it has value (in both of command flag value and environment value).
-func GetActiveFlagSet(cmd *cobra.Command, cmdHelpText string, allFS ...[]string) ([]string, error) {
-	output.PrintOut("LOGS", "getting active Flagset for command", cmd.Use)
-
-	errorText := []string{}
-	flagsHasValue := []string{}
-
-	if len(allFS) <= 0 {
-		return []string{}, fmt.Errorf("please provide at least one flag set.")
-	}
-
-	noFlagProvided := true
-
-	for _, flagSet := range allFS {
-		err := ValidateRequireFlags(flagSet, "", cmd)
-		if err == nil {
-			return flagSet, nil
-		} else {
-			flagName, isProvided := IsOneFlagValueProvided(flagSet, cmd)
-			if isProvided && len(errorText) <= 0 {
-				errorText = []string{err.Error()}
-				noFlagProvided = false
-				flagsHasValue = flagName
-			}
-		}
-	}
-
-	showFlagShorthand := true
-	if noFlagProvided {
-		output.PrintOut("LOGS", "no Flag provided in command", cmd.Use)
-		errorText = []string{GetFlagsetString(allFS[0], showFlagShorthand, *cmd)}
-	} else {
-		output.PrintOut("LOGS", "some Flags has value but other mandatory flags value was not provided.")
-		fmt.Println(flagsHasValue)
-		excludedInput := true
-		errorText = []string{GetFlagsetString(common.GetShortestArray(flagsHasValue, excludedInput, allFS...), showFlagShorthand, *cmd)}
-	}
-
-	// return if error
-	if len(cmdHelpText) > 0 {
-		return []string{}, fmt.Errorf("the following arguments are required: %s\n%s", strings.Join(errorText, ", "), cmdHelpText)
-	} else {
-		return []string{}, fmt.Errorf("the following arguments are required: %s", strings.Join(errorText, ", "))
-	}
+	return []string{}
 }
 
 // Get all flag in a flagset printed as a string include both of flag and its short version if exists
@@ -143,4 +98,37 @@ func GetFlagsetString(flagSet []string, showShort bool, cmd cobra.Command) strin
 	}
 
 	return strings.Join(output, ", ")
+}
+
+// Return the flag set and error(if failed) in the list of input flag set if it has value (in both of command flag value and environment value).
+func GetActiveFlagSet(cmd *cobra.Command, flagSets ...[]string) ([]string, error) {
+	errorText := []string{}
+	flagsHasValue := []string{}
+	noFlagProvided := true
+	showFlagShorthand := true
+	excludedInput := true
+
+	output.PrintOut("LOGS", "getting active Flagset for command", cmd.Use)
+	for _, flagSet := range flagSets {
+		err := ValidateRequireFlags(flagSet, "", cmd)
+		if err == nil {
+			return flagSet, nil
+		} else {
+			valuedFlags := GetFlagsHasValueInFS(flagSet, cmd)
+			if len(errorText) <= 0 && len(valuedFlags) > 0 {
+				errorText = []string{err.Error()}
+				noFlagProvided = false
+				flagsHasValue = valuedFlags
+			}
+		}
+	}
+
+	if noFlagProvided {
+		errorText = []string{GetFlagsetString(common.GetShortestArray([]string{}, excludedInput, flagSets...), showFlagShorthand, *cmd)}
+	} else {
+		errorText = []string{GetFlagsetString(common.GetShortestArray(flagsHasValue, excludedInput, flagSets...), showFlagShorthand, *cmd)}
+	}
+
+	// return if error
+	return []string{}, fmt.Errorf(strings.Join(errorText, ", "))
 }
