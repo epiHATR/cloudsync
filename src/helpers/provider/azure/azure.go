@@ -46,10 +46,6 @@ func DownloadContainerWithKey(accountName, containerName, key, blobPath, path st
 // Copy a container from a specific Storage account to the other Storage Account, givent access by keys
 func CopyContainerWithKey(srcAccount, srcContainer, srcKey, sourceBlobs, destAccount, destContainer, destKey string) {
 	ctx := context.Background()
-	if len(destContainer) <= 0 {
-		destContainer = srcContainer
-	}
-
 	// Verify source storage account
 	sourceClient, err := azurelib.VerifyStorageAccountWithKey(srcAccount, srcKey)
 	errorHelper.Handle(err, false)
@@ -79,6 +75,53 @@ func CopyContainerWithKey(srcAccount, srcContainer, srcKey, sourceBlobs, destAcc
 	}
 
 	output.PrintOut("INFO", fmt.Sprintf("Copying all blobs from storage account %s (container %s) to storage account %s (container %s)", srcAccount, srcContainer, destAccount, destContainer))
+	totalFile := azurelib.CopyBlobs(ctx, sourceClient, destClient, srcContainer, destContainer, blobsToCopy)
+	output.PrintOut("INFO", "total", strconv.Itoa(totalFile), "blobs was copied to", destContainer)
+}
+
+// Copy a container from a specific Storage account to the other Storage Account, givent access by keys
+func CopyContainerWithConnectionString(srcConn, srcContainer, sourceBlobs, desConn, destContainer string) {
+	ctx := context.Background()
+	if len(destContainer) <= 0 {
+		destContainer = srcContainer
+	}
+
+	// Verify source storage account
+	sourceClient, err := azurelib.VerifyStorageAccountWithConnectionString(srcConn)
+	errorHelper.Handle(err, false)
+
+	// Verify if destination container exists
+	destClient, err := azurelib.VerifyStorageAccountWithConnectionString(desConn)
+	errorHelper.Handle(err, false)
+
+	output.PrintOut("LOGS", "creating destination container", destContainer, "if not exists")
+	// Create destination container
+	azurelib.CreateContainer(ctx, *destClient, destContainer)
+
+	// Start copying blobs
+	blobsToCopy := []string{}
+	if len(sourceBlobs) <= 0 {
+		blobs, err := azurelib.GetBlobsInContainer(*sourceClient, srcContainer)
+		errorHelper.Handle(err, false)
+		blobsToCopy = blobs
+	} else {
+		blobs := strings.Split(sourceBlobs, ",")
+		for _, blob := range blobs {
+			trimmed := strings.TrimLeft(blob, " ")
+			trimmed = strings.TrimLeft(trimmed, " ")
+			if len(trimmed) > 0 {
+				blobsToCopy = append(blobsToCopy, trimmed)
+			}
+		}
+	}
+
+	srcAccountName, err := azurelib.GetStorageAccountNameFromSasURL(srcConn)
+	errorHelper.Handle(err, false)
+
+	desAccountName, err := azurelib.GetStorageAccountNameFromSasURL(desConn)
+	errorHelper.Handle(err, false)
+
+	output.PrintOut("INFO", fmt.Sprintf("Copying all blobs from storage account %s (container %s) to storage account %s (container %s)", srcAccountName, srcContainer, desAccountName, destContainer))
 	totalFile := azurelib.CopyBlobs(ctx, sourceClient, destClient, srcContainer, destContainer, blobsToCopy)
 	output.PrintOut("INFO", "total", strconv.Itoa(totalFile), "blobs was copied to", destContainer)
 }
@@ -129,4 +172,38 @@ func DownloadBlobWithConnectionString(connectionString, containerName, blobName,
 	errorHelper.Handle(err, false)
 	azurelib.DownloadBlob(context.Background(), client, containerName, blobName, path, true)
 	output.PrintOut("INFO", fmt.Sprintf("Blob %s in container %s has been transferred to %s", blobName, containerName, path))
+}
+
+// Delete blobs from a Storage container with key
+func DeleteBlobWithKey(accountName, containerName, key string, deletingBlob string) {
+	client, err := azurelib.VerifyStorageAccountWithKey(accountName, key)
+	errorHelper.Handle(err, false)
+	DeleteBlobsFromContainer(client, containerName, deletingBlob)
+}
+
+// Delete blobs from a Storage container with connection string
+func DeleteBlobWithConnectionString(connectionString, containerName, deletingBlob string) {
+	client, err := azurelib.VerifyStorageAccountWithConnectionString(connectionString)
+	errorHelper.Handle(err, false)
+	DeleteBlobsFromContainer(client, containerName, deletingBlob)
+}
+
+// Delete blobs from a Storage container
+func DeleteBlobsFromContainer(client *azblob.Client, containerName, deletingBlob string) {
+	if len(deletingBlob) <= 0 {
+		blobs, err := azurelib.GetBlobsInContainer(*client, containerName)
+		if len(blobs) > 0 {
+			output.PrintOut("INFO", "deleting all blobs in container", containerName)
+			errorHelper.Handle(err, false)
+			err = azurelib.DeleteContainerBlobs(context.Background(), client, containerName, blobs)
+			errorHelper.Handle(err, false)
+			output.PrintOut("INFO", "total", strconv.Itoa(len(blobs)), "blobs were deleted from container", containerName)
+		} else {
+			output.PrintOut("INFO", "container", containerName, "contains 0 blob. Nothing will be deleted.")
+		}
+	} else {
+		output.PrintOut("INFO", "deleting blob", deletingBlob, "in container", containerName)
+		err := azurelib.DeleteContainerBlobs(context.Background(), client, containerName, []string{deletingBlob})
+		errorHelper.Handle(err, false)
+	}
 }

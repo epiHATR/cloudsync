@@ -7,8 +7,10 @@ import (
 	"cloudsync/src/helpers/output"
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -175,4 +177,38 @@ func UploadBlobs(fileList []string, fromPath string, toContainer string, client 
 		errorHelper.Handle(err, false)
 		output.PrintOut("INFO", fmt.Sprintf("uploaded file %s to blob at %s/%s", fromPath, toContainer, blobName))
 	}
+}
+
+// return Storage Account from SAS Url
+func GetStorageAccountNameFromSasURL(sasURL string) (string, error) {
+	parsedURL, err := url.Parse(sasURL)
+	errorHelper.Handle(err, false)
+
+	// The SAS token is the query part of the URL.
+	queryParams, err := url.ParseQuery(parsedURL.RawQuery)
+	errorHelper.Handle(err, false)
+
+	// The "sv" query parameter contains the storage account name.
+	storageAccountName := queryParams.Get("sv")
+	if storageAccountName == "" {
+		return "", fmt.Errorf("storage account name not found in the SAS URL")
+	}
+
+	// If the storage account name contains the path, remove it.
+	storageAccountName = strings.Split(storageAccountName, ".")[0]
+
+	return storageAccountName, nil
+}
+
+// delete blobs in a specific storage container
+func DeleteContainerBlobs(ctx context.Context, client *azblob.Client, containerName string, blobs []string) error {
+	for _, blob := range blobs {
+		_, err := client.DeleteBlob(context.TODO(), containerName, blob, nil)
+		if err != nil {
+			return err
+		} else {
+			output.PrintOut("INFO", "deleted blob", blob)
+		}
+	}
+	return nil
 }

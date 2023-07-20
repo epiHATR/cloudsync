@@ -4,80 +4,49 @@ import (
 	"cloudsync/src/helpers/common"
 	"cloudsync/src/helpers/output"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
-
-// Get a Flag value in both of command flag and environment variable
-func GetInputValue(flagName string, value string, cmd *cobra.Command) (string, error) {
-	errText := ""
-	if len(value) > 0 {
-		output.PrintOut("LOGS", flagName, "has value as", value)
-		return value, nil
-	} else {
-		flag := cmd.Flag(flagName)
-		// if flag value was not provided or just an empty string
-		if flag == nil || flag.Changed == false || len(flag.Value.String()) <= 0 {
-			// then we'll check environment variables starts with CLOUDSYNC_ENV_
-			flagEnvName := "CLOUDSYNC_ENV_" + strings.ToUpper(strings.ReplaceAll(flag.Name, "-", "_"))
-			flagEnvValue := os.Getenv(flagEnvName)
-			if len(flagEnvValue) <= 0 {
-				// add to errText that no value found for that flag
-				if len(flag.Shorthand) <= 0 {
-					errText = fmt.Sprintf("--%s", flag.Name)
-				} else {
-					errText = fmt.Sprintf("--%s/-%s", flag.Name, flag.Shorthand)
-				}
-				return "", fmt.Errorf(errText)
-			} else {
-				return flagEnvValue, nil
-			}
-		} else if flag.Changed {
-			return flag.Value.String(), nil
-		}
-		return "", nil
-	}
-}
 
 // Check if provided Flagset has value (both of input value and environment variables).
 // Return error if one of flag in that Flagset has no value provided
-func ValidateRequireFlags(flagSet []string, commandHelpText string, cmd *cobra.Command) error {
+func ValidateRequireFlags(flagSet []string, cmd *cobra.Command) error {
 	errText := []string{}
 	for _, flagName := range flagSet {
-		_, err := GetInputValue(flagName, "", cmd)
-		if err != nil {
-			errText = append(errText, err.Error())
+		flagValue := viper.GetString(flagName)
+		output.PrintOut("LOGS", (fmt.Sprintf("Flag %s -> %s", flagName, flagValue)))
+		if len(flagValue) <= 0 {
+			flag := cmd.Flag(flagName)
+			if len(flag.Shorthand) <= 0 {
+				errText = append(errText, fmt.Sprintf("--%s", flag.Name))
+			} else {
+				errText = append(errText, fmt.Sprintf("--%s/-%s", flag.Name, flag.Shorthand))
+			}
 		}
 	}
-
 	// only print errText if it has any value
 	if len(errText) > 0 {
 		message := fmt.Sprintf("the following arguments are required: %s", strings.Join(errText, ", "))
-		if len(commandHelpText) > 0 {
-			// return error with command help text if provided
-			return fmt.Errorf(fmt.Sprintf("%s\n\n%s", message, commandHelpText))
-		} else {
-			// otherwise, return error with errText only
-			return fmt.Errorf(message)
-		}
+		// otherwise, return error with errText only
+		return fmt.Errorf(message)
 	} else {
 		return nil
 	}
 }
 
 // Check if a Flagset has one flag contains value. Return list of flags in specific flagset has data
-func GetFlagsHasValueInFS(flagSet []string, cmd *cobra.Command) []string {
-	flag := []string{}
+func GetFlagsHasValueInFlagSet(flagSet []string, cmd *cobra.Command) []string {
+	flags := []string{}
 	for _, flagName := range flagSet {
-		_, err := GetInputValue(flagName, "", cmd)
-		if err == nil {
-			flag = append(flag, flagName)
+		flagValue := viper.GetString(flagName)
+		if len(flagValue) > 0 {
+			flags = append(flags, flagName)
 		}
 	}
-	if len(flag) > 0 {
-		return flag
+	if len(flags) > 0 {
+		return flags
 	}
 	return []string{}
 }
@@ -107,18 +76,23 @@ func GetActiveFlagSet(cmd *cobra.Command, flagSets ...[]string) ([]string, error
 	noFlagProvided := true
 	showFlagShorthand := true
 	excludedInput := true
+	maxRatio := float64(0)
 
 	output.PrintOut("LOGS", "getting active Flagset for command", cmd.Use)
 	for _, flagSet := range flagSets {
-		err := ValidateRequireFlags(flagSet, "", cmd)
+		err := ValidateRequireFlags(flagSet, cmd)
 		if err == nil {
 			return flagSet, nil
 		} else {
-			valuedFlags := GetFlagsHasValueInFS(flagSet, cmd)
-			if len(errorText) <= 0 && len(valuedFlags) > 0 {
+			valuedFlags := GetFlagsHasValueInFlagSet(flagSet, cmd)
+			currentRatio := float64(len(valuedFlags)) / float64(len(flagSet))
+			if len(valuedFlags) > 0 {
 				errorText = []string{err.Error()}
 				noFlagProvided = false
-				flagsHasValue = valuedFlags
+				if currentRatio > maxRatio {
+					maxRatio = currentRatio
+					flagsHasValue = valuedFlags
+				}
 			}
 		}
 	}
