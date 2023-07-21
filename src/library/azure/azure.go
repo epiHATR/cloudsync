@@ -3,7 +3,7 @@ package azurelib
 import (
 	"bytes"
 	"cloudsync/src/helpers/errorHelper"
-	"cloudsync/src/helpers/file"
+	"cloudsync/src/helpers/fileHelper"
 	"cloudsync/src/helpers/output"
 	"context"
 	"fmt"
@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-storage-file-go/azfile"
 )
 
 // Get a Storage Account client with key
@@ -106,7 +107,7 @@ func DownloadBlob(ctx context.Context, client *azblob.Client, containerName, blo
 	err = retryReader.Close()
 	errorHelper.Handle(err, false)
 
-	err = file.SaveToLocalFile(downloadedData.String(), fmt.Sprintf("%s/%s", path, blobName))
+	err = fileHelper.SaveToLocalFile(downloadedData.String(), fmt.Sprintf("%s/%s", path, blobName))
 	errorHelper.Handle(err, false)
 	if showOutput == true {
 		output.PrintOut("INFO", fmt.Sprintf("downloaded blob %s", blobName))
@@ -155,8 +156,8 @@ func UploadBlobs(fileList []string, fromPath string, toContainer string, client 
 
 			go func(filePath string) {
 				defer wg.Done()
-				blobName := file.GetFilePathFromFolder(fromPath, filePath)
-				fileName, err := file.GetFileNameFromPath(filePath)
+				blobName := fileHelper.GetFilePathFromFolder(fromPath, filePath)
+				fileName, err := fileHelper.GetFileNameFromPath(filePath)
 				errorHelper.Handle(err, false)
 
 				file, _ := os.OpenFile(filePath, os.O_RDONLY, 0)
@@ -170,7 +171,7 @@ func UploadBlobs(fileList []string, fromPath string, toContainer string, client 
 		wg.Wait()
 		output.PrintOut("INFO", fmt.Sprintf("Folder %s has been upload to %s", selectedFolder, toContainer))
 	} else {
-		blobName, err := file.GetFileNameFromPath(fromPath)
+		blobName, err := fileHelper.GetFileNameFromPath(fromPath)
 		file, _ := os.OpenFile(fromPath, os.O_RDONLY, 0)
 		defer file.Close()
 		_, err = client.UploadFile(context.TODO(), toContainer, blobName, file, nil)
@@ -211,4 +212,90 @@ func DeleteContainerBlobs(ctx context.Context, client *azblob.Client, containerN
 		}
 	}
 	return nil
+}
+
+func GetAzureFileShareServiceUrl(accountName, accountKey, shareName string) azfile.ServiceURL {
+	credential, err := azfile.NewSharedKeyCredential(accountName, accountKey)
+	errorHelper.Handle(err, false)
+	serviceURL, err := url.Parse(fmt.Sprintf("https://%s.file.core.windows.net/", accountName))
+	errorHelper.Handle(err, false)
+	p := azfile.NewPipeline(credential, azfile.PipelineOptions{})
+	serviceUrl := azfile.NewServiceURL(*serviceURL, p)
+	return serviceUrl
+}
+
+func GetAzureFileUrl(accountName, accountKey, shareName, fileName string) azfile.FileURL {
+	credential, err := azfile.NewSharedKeyCredential(accountName, accountKey)
+	errorHelper.Handle(err, false)
+
+	// Prepare a share for the file example.
+	u, _ := url.Parse(fmt.Sprintf("https://%s.file.core.windows.net/%s/%s", accountName, shareName, fileName))
+	fileURL := azfile.NewFileURL(*u, azfile.NewPipeline(credential, azfile.PipelineOptions{}))
+	return fileURL
+}
+
+func GetFileShareByName(accountName, accountKey, shareName string) (*azfile.ShareItem, error) {
+	shareUrl := GetAzureFileShareServiceUrl(accountName, accountKey, shareName)
+	shareFound := false
+	shareDetail := azfile.ShareItem{}
+	fileShares, err := shareUrl.ListSharesSegment(context.Background(), azfile.Marker{}, azfile.ListSharesOptions{})
+	errorHelper.Handle(err, false)
+
+	for _, share := range fileShares.ShareItems {
+		if share.Name == shareName {
+			shareFound = true
+			shareDetail = share
+		}
+	}
+	if shareFound {
+		return &shareDetail, nil
+	} else {
+		return nil, fmt.Errorf(fmt.Sprintf("No share called %s found in storage account %s.", shareName, accountName))
+	}
+}
+
+func UploadToAzureFile(accountName, accountKey, shareName, uploadPath string) {
+	uploadType, err := fileHelper.GetPathType(uploadPath)
+	errorHelper.Handle(err, false)
+
+	filesToUpload := []string{}
+
+	if uploadType == "FILE" {
+		filesToUpload = append(filesToUpload, uploadPath)
+	} else {
+		files, err := fileHelper.GetFiles(uploadPath)
+		errorHelper.Handle(err, false)
+		filesToUpload = append(filesToUpload, files...)
+	}
+
+	for _, filePath := range filesToUpload {
+		shareDirectory, err := fileHelper.GetRelativeDir(uploadPath, filePath)
+		fileName, err := fileHelper.GetFileNameFromPath(filePath)
+		errorHelper.Handle(err, false)
+
+		sharePath := ""
+		if len(shareDirectory) > 0 {
+			sharePath = fmt.Sprintf("%s/%s", shareDirectory, fileName)
+
+		} else {
+			sharePath = fileName
+		}
+
+		output.PrintOut("LOGS", "uploading file", filePath, "to file share path", sharePath)
+		file, err := os.Open(filePath)
+		defer file.Close()
+		_, err = file.Stat()
+		errorHelper.Handle(err, false)
+
+		fileShareUrl := GetAzureFileUrl(accountName, accountKey, shareName, sharePath)
+
+		err = azfile.UploadFileToAzureFile(context.Background(), file, fileShareUrl,
+			azfile.UploadToAzureFileOptions{
+				FileHTTPHeaders: azfile.FileHTTPHeaders{
+					CacheControl: "no-transform",
+				},
+			})
+		errorHelper.Handle(err, false)
+		output.PrintOut("INFO", fmt.Sprintf("uploaded file %s to file share path %s", filePath, sharePath))
+	}
 }

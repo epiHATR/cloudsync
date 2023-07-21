@@ -72,4 +72,12 @@ const Azure_Container_Upload_HelpText = `|Examples
 
 const Base64_HelpText = `|Examples`
 
-const Azure_Container_Delete_HelpText = `|Examples`
+const Azure_Container_Delete_HelpText = `|Examples
+
+#Delete all blobs inside a specific Storage container
+>cloudsync azure container delete --account myAccount --container myContainer --key myStorageKey
+
+#Delete a specific blob inside a Storage container
+>cloudsync azure container delete --account myAccount --container myContainer --key myStorageKey --blob myBlob/path`
+
+const Azure_FileShare_Upload_HelpText = `|Examples`

@@ -2,7 +2,7 @@ package azure
 
 import (
 	"cloudsync/src/helpers/errorHelper"
-	"cloudsync/src/helpers/file"
+	"cloudsync/src/helpers/fileHelper"
 	"cloudsync/src/helpers/output"
 	azurelib "cloudsync/src/library/azure"
 	"context"
@@ -128,7 +128,7 @@ func CopyContainerWithConnectionString(srcConn, srcContainer, sourceBlobs, desCo
 
 // Upload object to a Azure storage container with connection string authentiation method
 func UploadToContainerWithConnectionString(containerName, connectionString, pathToUpload string) {
-	uploadType, err := file.GetPathType(pathToUpload)
+	uploadType, err := fileHelper.GetPathType(pathToUpload)
 	errorHelper.Handle(err, false)
 	destClient, err := azurelib.VerifyStorageAccountWithConnectionString(connectionString)
 	errorHelper.Handle(err, false)
@@ -137,7 +137,7 @@ func UploadToContainerWithConnectionString(containerName, connectionString, path
 
 // Upload object to a Azure storage container with storage account key authentiation method
 func UploadToContainerWithKey(accountName, containerName, key, pathToUpload string) {
-	uploadType, err := file.GetPathType(pathToUpload)
+	uploadType, err := fileHelper.GetPathType(pathToUpload)
 	errorHelper.Handle(err, false)
 	destClient, err := azurelib.VerifyStorageAccountWithKey(accountName, key)
 	errorHelper.Handle(err, false)
@@ -151,7 +151,7 @@ func UploadToContainer(uploadType string, client *azblob.Client, containerName, 
 	} else {
 		output.PrintOut("INFO", fmt.Sprintf("Start uploading folder to the container %s", containerName))
 	}
-	fileList, err := file.GetFiles(pathToUpload)
+	fileList, err := fileHelper.GetFiles(pathToUpload)
 	errorHelper.Handle(err, false)
 	azurelib.UploadBlobs(fileList, pathToUpload, containerName, client)
 }
@@ -206,4 +206,11 @@ func DeleteBlobsFromContainer(client *azblob.Client, containerName, deletingBlob
 		err := azurelib.DeleteContainerBlobs(context.Background(), client, containerName, []string{deletingBlob})
 		errorHelper.Handle(err, false)
 	}
+}
+
+// Upload to a Azure file share
+func UploadToAzureFile(accountName, accountKey, shareName, uploadPath string) {
+	shareDetail, err := azurelib.GetFileShareByName(accountName, accountKey, shareName)
+	errorHelper.Handle(err, false)
+	azurelib.UploadToAzureFile(accountName, accountKey, shareDetail.Name, uploadPath)
 }

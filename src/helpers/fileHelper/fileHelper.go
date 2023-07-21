@@ -1,4 +1,4 @@
-package file
+package fileHelper
 
 import (
 	"cloudsync/src/helpers/errorHelper"
@@ -92,4 +92,28 @@ func GetFilePathFromFolder(folderPath, filePath string) string {
 	}
 
 	return relPath
+}
+
+func GetParentFolder(filePath string) (string, error) {
+	// Getting the absolute path of the file to handle relative paths
+	absPath, err := filepath.Abs(filePath)
+	if err != nil {
+		return "", err
+	}
+
+	// Getting the directory part of the absolute path
+	parentDir := filepath.Dir(absPath)
+
+	// Getting the last part of the parent directory, which is the folder name
+	parentFolder := filepath.Base(parentDir)
+
+	return parentFolder, nil
+}
+
+func GetRelativeDir(parentPath, fullPath string) (string, error) {
+	relativePath := strings.TrimPrefix(fullPath, parentPath)
+	// Trim any leading path separator (e.g., '/' or '\')
+	relativePath = strings.TrimPrefix(relativePath, string(filepath.Separator))
+	relativeDir := filepath.Dir(relativePath)
+	return relativeDir, nil
 }

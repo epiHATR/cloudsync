@@ -5,8 +5,10 @@ go 1.20
 require github.com/spf13/cobra v1.7.0
 
 require (
+	github.com/Azure/azure-pipeline-go v0.2.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.6.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.3.0 // indirect
+	github.com/Azure/azure-storage-file-go v0.8.0 // indirect
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/cilium/ebpf v0.7.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
@@ -14,6 +16,7 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
+	github.com/mattn/go-ieproxy v0.0.0-20190610004146-91bb50d98149 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/sirupsen/logrus v1.6.0 // indirect
