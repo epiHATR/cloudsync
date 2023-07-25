@@ -7,6 +7,7 @@ import (
 	azurelib "cloudsync/src/library/azure"
 	"context"
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -23,7 +24,7 @@ func DownloadContainerWithConnectionString(connectionString, containerName, blob
 		output.PrintOut("INFO", fmt.Sprintf("All blobs in %s has been transferred to %s", containerName, path))
 	} else {
 		output.PrintOut("INFO", fmt.Sprintf("Start downloading blob %s in container %s to %s with connection string", blobPath, containerName, path))
-		azurelib.DownloadBlob(context.Background(), client, containerName, blobPath, path, true)
+		azurelib.DownloadBlob(context.TODO(), client, containerName, blobPath, path, true)
 		output.PrintOut("INFO", fmt.Sprintf("Blob %s in container %s has been transferred to %s", blobPath, containerName, path))
 	}
 }
@@ -45,7 +46,7 @@ func DownloadContainerWithKey(accountName, containerName, key, blobPath, path st
 
 // Copy a container from a specific Storage account to the other Storage Account, givent access by keys
 func CopyContainerWithKey(srcAccount, srcContainer, srcKey, sourceBlobs, destAccount, destContainer, destKey string) {
-	ctx := context.Background()
+	ctx := context.TODO()
 	// Verify source storage account
 	sourceClient, err := azurelib.VerifyStorageAccountWithKey(srcAccount, srcKey)
 	errorHelper.Handle(err, false)
@@ -210,7 +211,29 @@ func DeleteBlobsFromContainer(client *azblob.Client, containerName, deletingBlob
 
 // Upload to a Azure file share
 func UploadToAzureFile(accountName, accountKey, shareName, uploadPath string) {
-	shareDetail, err := azurelib.GetFileShareByName(accountName, accountKey, shareName)
+	err := azurelib.CheckShareExistance(accountName, accountKey, shareName)
 	errorHelper.Handle(err, false)
-	azurelib.UploadToAzureFile(accountName, accountKey, shareDetail.Name, uploadPath)
+
+	uploadType, err := fileHelper.GetPathType(uploadPath)
+	errorHelper.Handle(err, false)
+
+	filesToUpload := []string{}
+	isFileUpload := false
+	if uploadType == "FILE" {
+		filesToUpload = append(filesToUpload, uploadPath)
+		isFileUpload = true
+	} else {
+		files, err := fileHelper.GetFiles(uploadPath)
+		errorHelper.Handle(err, false)
+		filesToUpload = append(filesToUpload, files...)
+		isFileUpload = false
+	}
+
+	for _, uploadFile := range filesToUpload {
+		folder := ""
+		if !isFileUpload {
+			folder = filepath.Dir(uploadFile)
+		}
+		azurelib.UploadToAzureFile(accountName, accountKey, shareName, uploadFile, folder)
+	}
 }

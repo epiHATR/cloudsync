@@ -73,9 +73,6 @@ func PrintOut(logType string, input ...string) {
 			if IsDebug {
 				logger := log.New(os.Stdout, "INFO ", 3)
 				logger.Println(strings.Join(input, " "))
-			} else {
-				logger := log.New(os.Stdout, "", 0)
-				logger.Println(strings.Join(input, " "))
 			}
 		}
 	}

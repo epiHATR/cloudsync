@@ -214,7 +214,7 @@ func DeleteContainerBlobs(ctx context.Context, client *azblob.Client, containerN
 	return nil
 }
 
-func GetAzureFileShareServiceUrl(accountName, accountKey, shareName string) azfile.ServiceURL {
+func GetServiceUrl(accountName, accountKey string) azfile.ServiceURL {
 	credential, err := azfile.NewSharedKeyCredential(accountName, accountKey)
 	errorHelper.Handle(err, false)
 	serviceURL, err := url.Parse(fmt.Sprintf("https://%s.file.core.windows.net/", accountName))
@@ -224,78 +224,114 @@ func GetAzureFileShareServiceUrl(accountName, accountKey, shareName string) azfi
 	return serviceUrl
 }
 
-func GetAzureFileUrl(accountName, accountKey, shareName, fileName string) azfile.FileURL {
-	credential, err := azfile.NewSharedKeyCredential(accountName, accountKey)
-	errorHelper.Handle(err, false)
-
-	// Prepare a share for the file example.
-	u, _ := url.Parse(fmt.Sprintf("https://%s.file.core.windows.net/%s/%s", accountName, shareName, fileName))
-	fileURL := azfile.NewFileURL(*u, azfile.NewPipeline(credential, azfile.PipelineOptions{}))
-	return fileURL
+func GetShareUrl(accountName, accountKey, shareName string) azfile.ShareURL {
+	serviceUrl := GetServiceUrl(accountName, accountKey)
+	shareUrl := serviceUrl.NewShareURL(shareName)
+	return shareUrl
 }
 
-func GetFileShareByName(accountName, accountKey, shareName string) (*azfile.ShareItem, error) {
-	shareUrl := GetAzureFileShareServiceUrl(accountName, accountKey, shareName)
-	shareFound := false
-	shareDetail := azfile.ShareItem{}
-	fileShares, err := shareUrl.ListSharesSegment(context.Background(), azfile.Marker{}, azfile.ListSharesOptions{})
-	errorHelper.Handle(err, false)
-
-	for _, share := range fileShares.ShareItems {
-		if share.Name == shareName {
-			shareFound = true
-			shareDetail = share
-		}
-	}
-	if shareFound {
-		return &shareDetail, nil
-	} else {
-		return nil, fmt.Errorf(fmt.Sprintf("No share called %s found in storage account %s.", shareName, accountName))
-	}
+func GetDirectoryUrl(accountName, accountKey, shareName, directoryName string) azfile.DirectoryURL {
+	shareUrl := GetShareUrl(accountName, accountKey, shareName)
+	directoryUrl := shareUrl.NewDirectoryURL(directoryName)
+	return directoryUrl
 }
 
-func UploadToAzureFile(accountName, accountKey, shareName, uploadPath string) {
-	uploadType, err := fileHelper.GetPathType(uploadPath)
-	errorHelper.Handle(err, false)
+func GetFileUrl(accountName, accountKey, shareName, directoryName, fileName string) azfile.FileURL {
+	directoryUrl := GetDirectoryUrl(accountName, accountKey, shareName, directoryName)
+	fileUrl := directoryUrl.NewFileURL(fileName)
+	return fileUrl
+}
 
-	filesToUpload := []string{}
+func CreateFileShareDirectory(accountName, accountKey, shareName, shareLocation string) error {
+	output.PrintOut("LOGS", fmt.Sprintf("creating folder at %s", shareLocation))
 
-	if uploadType == "FILE" {
-		filesToUpload = append(filesToUpload, uploadPath)
-	} else {
-		files, err := fileHelper.GetFiles(uploadPath)
-		errorHelper.Handle(err, false)
-		filesToUpload = append(filesToUpload, files...)
+	// Split the shareLocation by '/'
+	directories := strings.Split(shareLocation, "/")
+
+	// Removing any empty strings that might result from leading/trailing slashes or double slashes
+	var cleanedDirectories []string
+	for _, dir := range directories {
+		if dir != "" {
+			cleanedDirectories = append(cleanedDirectories, dir)
+		}
 	}
 
-	for _, filePath := range filesToUpload {
-		shareDirectory, err := fileHelper.GetRelativeDir(uploadPath, filePath)
-		fileName, err := fileHelper.GetFileNameFromPath(filePath)
-		errorHelper.Handle(err, false)
+	// Initialize the parent directory URL
+	parentDirectoryUrl := GetDirectoryUrl(accountName, accountKey, shareName, "")
 
-		sharePath := ""
-		if len(shareDirectory) > 0 {
-			sharePath = fmt.Sprintf("%s/%s", shareDirectory, fileName)
+	// Check if the parent directory exists
+	_, err := parentDirectoryUrl.GetProperties(context.TODO())
+	if err != nil {
+		// If the parent directory doesn't exist, return an error
+		return fmt.Errorf("parent directory does not exist: %s", parentDirectoryUrl.String())
+	}
 
-		} else {
-			sharePath = fileName
+	// Create parent and child directories
+	for i, dir := range cleanedDirectories {
+		// Append the current directory to the parent URL
+		parentDirectoryUrl = parentDirectoryUrl.NewDirectoryURL(dir)
+
+		// Check if the current directory exists
+		_, err := parentDirectoryUrl.GetProperties(context.TODO())
+		if err == nil {
+			// If the current directory already exists, move to the next iteration
+			continue
 		}
 
-		output.PrintOut("LOGS", "uploading file", filePath, "to file share path", sharePath)
-		file, err := os.Open(filePath)
-		defer file.Close()
-		_, err = file.Stat()
-		errorHelper.Handle(err, false)
+		// Create the directory if it doesn't exist
+		_, err = parentDirectoryUrl.Create(context.TODO(), azfile.Metadata{}, azfile.SMBProperties{})
+		if err != nil {
+			return err
+		}
 
-		fileShareUrl := GetAzureFileUrl(accountName, accountKey, shareName, sharePath)
-
-		err = azfile.UploadFileToAzureFile(context.Background(), file, fileShareUrl,
-			azfile.UploadToAzureFileOptions{
-				FileHTTPHeaders: azfile.FileHTTPHeaders{
-					CacheControl: "no-transform",
-				},
-			})
-		errorHelper.Handle(err, false)
-		output.PrintOut("INFO", fmt.Sprintf("uploaded file %s to file share path %s", filePath, sharePath))
+		// If this is the last directory, set the parent URL to the current URL
+		// to ensure the next iteration starts from the correct parent.
+		if i == len(cleanedDirectories)-1 {
+			parentDirectoryUrl = parentDirectoryUrl.NewDirectoryURL("")
+		}
 	}
+
+	return nil
+}
+
+func CheckShareExistance(accountName, accountKey, shareName string) error {
+	shareUrl := GetShareUrl(accountName, accountKey, shareName)
+	_, err := shareUrl.GetProperties(context.TODO())
+	if err != nil {
+		return fmt.Errorf(fmt.Sprintf("No share called %s exists in storage account %s", shareName, accountName))
+	} else {
+		return nil
+	}
+
+}
+
+func UploadToAzureFile(accountName, accountKey, shareName, fileToUpload, shareLocation string) {
+	file, err := os.Open(fileToUpload)
+	defer file.Close()
+	_, err = file.Stat()
+	errorHelper.Handle(err, false)
+
+	shareFileLocation := ""
+	fileName, _ := fileHelper.GetFileNameFromPath(fileToUpload)
+	if len(shareLocation) <= 0 {
+		shareFileLocation, _ = fileHelper.GetFileNameFromPath(fileToUpload)
+	} else {
+		shareFileLocation = fmt.Sprintf("%s/%s", shareLocation, fileName)
+	}
+
+	output.PrintOut("LOGS", fmt.Sprintf("uploading file %s to file share %s at path %s", fileToUpload, shareName, shareFileLocation))
+	if len(shareFileLocation) > 0 {
+		err := CreateFileShareDirectory(accountName, accountKey, shareName, shareLocation)
+		errorHelper.Handle(err, false)
+	}
+
+	fileShareUrl := GetFileUrl(accountName, accountKey, shareName, shareLocation, fileName)
+	err = azfile.UploadFileToAzureFile(context.TODO(), file, fileShareUrl,
+		azfile.UploadToAzureFileOptions{
+			FileHTTPHeaders: azfile.FileHTTPHeaders{
+				CacheControl: "no-transform",
+			},
+		})
+	errorHelper.Handle(err, false)
+	output.PrintOut("INFO", fmt.Sprintf("uploaded file %s to file share path %s", fileToUpload, shareFileLocation))
 }
